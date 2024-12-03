@@ -5,7 +5,7 @@ import react from '@astrojs/react';
 // https://astro.build/config
 export default defineConfig({
   outDir: './docs',
-  base: '/algebras-docs',
+  // base: '/algebras-docs',
   build: {
     assets: 'app_assets',
   },
