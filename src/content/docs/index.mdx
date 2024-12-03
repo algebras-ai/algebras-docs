@@ -7,8 +7,8 @@ hero:
   image:
     file: ../../assets/logo_256x256.png
   actions:
-    - text: Example Guide
-      link: /algebras-docs/guides/example/
+    - text: Getting Started
+      link: /algebras-docs/general/introduction/
       icon: right-arrow
     - text: OpenAPI Specification
       link: https://api.algebras.ai/v1/docs
@@ -18,19 +18,17 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-## Next steps
-
 <CardGrid stagger>
-  <Card title="Update content" icon="pencil">
-    Edit `src/content/docs/index.mdx` to see this page change.
+  <Card title="Visit the Website" icon="open-book">
+    Visit [Algebras](https://www.algebras.ai/) to see more
   </Card>
-  <Card title="Add new content" icon="add-document">
-    Add Markdown or MDX files to `src/content/docs` to create new pages.
+  <Card title="Register on the platform" icon="add-document">
+    Register on the [Platform](https://platform.algebras.ai/)
   </Card>
-  <Card title="Configure your site" icon="setting">
-    Edit your `sidebar` and other config in `astro.config.mjs`.
+  <Card title="Create API keys" icon="setting">
+    Create [API keys](https://platform.algebras.ai/organization/api-keys)
   </Card>
-  <Card title="Read the docs" icon="open-book">
-    Learn more in [the Starlight Docs](https://starlight.astro.build/).
+  <Card title="Explore OpenAPI specification" icon="open-book">
+    Explore [OpenAPI specification](https://api.algebras.ai/v1/docs)
   </Card>
 </CardGrid>

@@ -14,8 +14,8 @@ export default defineConfig({
       title: 'Algebras',
       sidebar: [
         {
-          label: 'Guides',
-          items: [{ label: 'Example Guide', slug: 'guides/example' }],
+          label: 'General',
+          items: [{ label: 'Introduction', slug: 'general/introduction' }],
         },
         {
           label: 'Reference',
