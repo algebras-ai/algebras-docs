@@ -6,6 +6,9 @@ import react from '@astrojs/react';
 export default defineConfig({
   outDir: './docs',
   base: '/algebras-docs',
+  build: {
+    assets: 'app_assets',
+  },
   integrations: [
     starlight({
       title: 'Algebras',
