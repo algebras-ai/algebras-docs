@@ -6,6 +6,7 @@ import react from '@astrojs/react';
 export default defineConfig({
   outDir: './docs',
   // base: '/algebras-docs',
+  site: 'https://docs.algebras.ai',
   build: {
     assets: 'app_assets',
   },
@@ -18,8 +19,12 @@ export default defineConfig({
           items: [{ label: 'Introduction', slug: 'general/introduction' }],
         },
         {
-          label: 'Reference',
-          autogenerate: { directory: 'reference' },
+          label: 'API',
+          autogenerate: { directory: 'api' },
+        },
+        {
+          label: 'Examples',
+          autogenerate: { directory: 'examples' },
         },
       ],
     }),

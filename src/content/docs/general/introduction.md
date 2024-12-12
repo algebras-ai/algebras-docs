@@ -1,11 +1,36 @@
 ---
-title: Introduction
-description: A guide in my new Starlight docs site.
+title: Algebras API Documentation
+description: API reference and documentation for the Algebras API
 ---
+Welcome to the Algebras API documentation. This API provides translation and glossary services with secure authentication.
 
-Guides lead a user through a specific task they want to accomplish, often with a sequence of steps.
-Writing a good guide requires thinking about what your users are trying to do.
+## Authentication
 
-## Further reading
+All API endpoints require authentication using an API key. Include your API key in the `X-Api-Key` header with all requests.
 
-- Read [about how-to guides](https://diataxis.fr/how-to-guides/) in the Diátaxis framework
+```http
+X-Api-Key: your_api_key_here
+```
+
+```bash
+# Get list of supported languages
+curl -X GET "https://api.algebras.ai/v1/languages/" \
+     -H "X-Api-Key: your_api_key_here"
+```
+
+## Available Endpoints
+
+The API provides the following main endpoints:
+
+1. [Language Support](/api/languages) - Get information about supported languages
+2. [Translation](/api/translation) - Translate text between languages
+3. [Glossary Extraction](/api/glossary) - Extract terms and definitions from text
+
+## Error Handling
+
+The API uses standard HTTP status codes and provides detailed error messages when validation fails. Common error responses include:
+
+- `422 Validation Error` - Request validation failed
+- Validation errors include detailed information about the location and nature of the error
+
+For detailed information about each endpoint and feature, please refer to the specific documentation sections.
