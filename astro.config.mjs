@@ -13,6 +13,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'Algebras',
+      customCss: ['./src/styles/custom.css'],
       sidebar: [
         {
           label: 'General',
