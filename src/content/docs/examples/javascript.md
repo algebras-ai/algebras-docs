@@ -8,18 +8,18 @@ description: Sample code for using the Algebras API in JavaScript
 ```javascript
 // Configuration
 const API_KEY = 'your_api_key_here';
-const BASE_URL = 'https://api.algebras.ai';
+const BASE_URL = 'https://platform.algebras.ai/api';
 
 const headers = {
   'X-Api-Key': API_KEY,
-  'Content-Type': 'application/json'
+  'Content-Type': 'application/json',
 };
 
 // Get supported languages
 async function getLanguages() {
   try {
     const response = await fetch(`${BASE_URL}/v1/languages/`, {
-      headers
+      headers,
     });
     const data = await response.json();
     return data;
@@ -38,8 +38,8 @@ async function translateText(text, targetLang, sourceLang = 'auto') {
       body: JSON.stringify({
         source_lang: sourceLang,
         target_lang: targetLang,
-        text: [text]
-      })
+        text: [text],
+      }),
     });
     const data = await response.json();
     return data.translations[0].text;
@@ -55,7 +55,7 @@ async function extractGlossary(text) {
     const response = await fetch(`${BASE_URL}/v1/glossaries/extract`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ text })
+      body: JSON.stringify({ text }),
     });
     const data = await response.json();
     return data.glossary;
@@ -87,26 +87,24 @@ async function main() {
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://api.algebras.ai',
+  baseURL: 'https://platform.algebras.ai/api"',
   headers: {
     'X-Api-Key': 'your_api_key_here',
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 });
 
 // Get supported languages
 const getLanguages = () => api.get('/v1/languages/');
 
 // Translate text
-const translateText = (text, targetLang, sourceLang = 'auto') => 
+const translateText = (text, targetLang, sourceLang = 'auto') =>
   api.post('/v1/translate/', {
     source_lang: sourceLang,
     target_lang: targetLang,
-    text: [text]
+    text: [text],
   });
 
 // Extract glossary terms
-const extractGlossary = (text) => 
-  api.post('/v1/glossaries/extract', { text });
+const extractGlossary = (text) => api.post('/v1/glossaries/extract', { text });
 ```
-

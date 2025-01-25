@@ -2,6 +2,7 @@
 title: Go
 description: Sample code for using the Algebras API in Go
 ---
+
 ```go
 package algebrasapi
 
@@ -44,7 +45,7 @@ type GlossaryResponse struct {
 
 func NewClient(apiKey string) *Client {
     return &Client{
-        BaseURL:    "https://api.algebras.ai",
+        BaseURL:    "https://platform.algebras.ai/api",
         APIKey:     apiKey,
         HTTPClient: &http.Client{},
     }

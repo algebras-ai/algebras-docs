@@ -2,6 +2,7 @@
 title: Algebras API Documentation
 description: API reference and documentation for the Algebras API
 ---
+
 Welcome to the Algebras API documentation. This API provides translation and glossary services with secure authentication.
 
 ## Authentication
@@ -14,7 +15,7 @@ X-Api-Key: your_api_key_here
 
 ```bash
 # Get list of supported languages
-curl -X GET "https://api.algebras.ai/v1/languages/" \
+curl -X GET "https://platform.algebras.ai/api/v1/languages/" \
      -H "X-Api-Key: your_api_key_here"
 ```
 

@@ -10,7 +10,7 @@ import requests
 from typing import List, Optional
 
 class AlgebrasAPI:
-    def __init__(self, api_key: str, base_url: str = "https://api.algebras.ai"):
+    def __init__(self, api_key: str, base_url: str = "https://platform.algebras.ai/api""):
         self.base_url = base_url
         self.headers = {
             "X-Api-Key": api_key,
@@ -58,18 +58,18 @@ class AlgebrasAPI:
 # Usage example
 def main():
     api = AlgebrasAPI("your_api_key_here")
-    
+
     # Get supported languages
     languages = api.get_languages()
     print("Supported languages:", languages)
-    
+
     # Translate text
     translations = api.translate_text(
         ["Hello, world!"],
         target_lang="de"
     )
     print("Translated text:", translations)
-    
+
     # Extract glossary
     glossary = api.extract_glossary(
         "API is an Application Programming Interface"
@@ -88,7 +88,7 @@ import asyncio
 from typing import List
 
 class AsyncAlgebrasAPI:
-    def __init__(self, api_key: str, base_url: str = "https://api.algebras.ai"):
+    def __init__(self, api_key: str, base_url: str = "https://platform.algebras.ai/api""):
         self.base_url = base_url
         self.headers = {
             "X-Api-Key": api_key,
