@@ -1,5 +1,5 @@
 ---
-title: Supported Languages
+title: Languages
 description: API endpoints for retrieving supported languages
 ---
 
@@ -7,45 +7,53 @@ description: API endpoints for retrieving supported languages
 
 Retrieve a list of all supported languages for translation.
 
-**Endpoint:** `GET /v1/languages/`
+**Endpoint:** `GET /translation/languages`
 
 ### Response
 
 **Success Response (200)**
 
-Returns an array of language information objects:
+Returns an object containing the list of supported languages:
 
 ```json
-[
-  {
-    "language": "string",
-    "name": "string"
-  }
-]
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": [
+    {
+      "language": "en",
+      "name": "English"
+    },
+    {
+      "language": "de",
+      "name": "German"
+    }
+  ]
+}
 ```
 
 Each language object contains:
+
 - `language`: Language code
 - `name`: Human-readable language name
 
-**Error Response (422)**
+**Error Response (400)**
 
-Validation error response structure:
+Invalid request error structure:
+
 ```json
 {
-  "detail": [
-    {
-      "loc": ["string"],
-      "msg": "string",
-      "type": "string"
-    }
-  ]
+  "status": "error",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "error": {
+    "message": "Invalid request parameters."
+  }
 }
 ```
 
 ### Example Request
 
 ```bash
-curl -X GET "https://api.example.com/v1/languages/" \
+curl -X GET "https://platform.algebras.ai/api/v1/translation/languages" \
      -H "X-Api-Key: your_api_key_here"
 ```

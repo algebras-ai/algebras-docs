@@ -2,26 +2,28 @@
 title: Translation
 description: API endpoints for text translation
 ---
+
 ## Translate Text
 
 Translate text between supported languages.
 
-**Endpoint:** `POST /v1/translate/`
+**Endpoint:** `POST /translation/translate-text`
 
 ### Request Body
 
 ```json
 {
-  "source_lang": "auto",
-  "target_lang": "de",
-  "text": ["Hello, World!"]
+  "sourceLanguage": "auto",
+  "targetLanguage": "de",
+  "text": "Hello, World!"
 }
 ```
 
 Parameters:
-- `source_lang`: Source language code (use "auto" for automatic detection)
-- `target_lang`: Target language code
-- `text`: Array of strings to translate (max 1000 items)
+
+- `sourceLanguage`: Source language code (use "auto" for automatic detection)
+- `targetLanguage`: Target language code
+- `text`: Text to translate (single string input)
 
 ### Response
 
@@ -29,37 +31,35 @@ Parameters:
 
 ```json
 {
-  "translations": [
-    {
-      "text": "string"
-    }
-  ]
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "text": "Hallo, Welt!"
+  }
 }
 ```
 
-**Error Response (422)**
+**Error Response (400)**
 
 ```json
 {
-  "detail": [
-    {
-      "loc": ["string"],
-      "msg": "string",
-      "type": "string"
-    }
-  ]
+  "status": "error",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "error": {
+    "message": "Invalid request parameters."
+  }
 }
 ```
 
 ### Example Request
 
 ```bash
-curl -X POST "https://api.example.com/v1/translate/" \
+curl -X POST "https://platform.algebras.ai/api/v1/translation/translate-text" \
      -H "X-Api-Key: your_api_key_here" \
      -H "Content-Type: application/json" \
      -d '{
-           "source_lang": "auto",
-           "target_lang": "de",
-           "text": ["Hello, World!"]
+           "sourceLanguage": "auto",
+           "targetLanguage": "de",
+           "text": "Hello, World!"
          }'
 ```

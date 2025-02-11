@@ -21,42 +21,37 @@ type Client struct {
 }
 
 type TranslationRequest struct {
-    SourceLang string   `json:"source_lang"`
-    TargetLang string   `json:"target_lang"`
-    Text       []string `json:"text"`
+    SourceLanguage string `json:"sourceLanguage"`
+    TargetLanguage string `json:"targetLanguage"`
+    Text          string `json:"text"`
 }
 
 type TranslationResponse struct {
-    Translations []struct {
+    Status    string `json:"status"`
+    Timestamp string `json:"timestamp"`
+    Data      struct {
         Text string `json:"text"`
-    } `json:"translations"`
+    } `json:"data"`
 }
 
-type GlossaryRequest struct {
-    Text string `json:"text"`
-}
-
-type GlossaryResponse struct {
-    Glossary []struct {
-        Term       string `json:"term"`
-        Definition string `json:"definition"`
-    } `json:"glossary"`
+type Language struct {
+    Language string `json:"language"`
+    Name     string `json:"name"`
 }
 
 func NewClient(apiKey string) *Client {
     return &Client{
-        BaseURL:    "https://platform.algebras.ai/api",
+        BaseURL:    "https://platform.algebras.ai/api/v1",
         APIKey:     apiKey,
         HTTPClient: &http.Client{},
     }
 }
 
-func (c *Client) GetLanguages() ([]map[string]string, error) {
-    req, err := http.NewRequest("GET", fmt.Sprintf("%s/v1/languages/", c.BaseURL), nil)
+func (c *Client) GetLanguages() ([]Language, error) {
+    req, err := http.NewRequest("GET", fmt.Sprintf("%s/translation/languages", c.BaseURL), nil)
     if err != nil {
         return nil, err
     }
-
     req.Header.Set("X-Api-Key", c.APIKey)
 
     resp, err := c.HTTPClient.Do(req)
@@ -65,19 +60,22 @@ func (c *Client) GetLanguages() ([]map[string]string, error) {
     }
     defer resp.Body.Close()
 
-    var languages []map[string]string
-    if err := json.NewDecoder(resp.Body).Decode(&languages); err != nil {
+    var result struct {
+        Status    string     `json:"status"`
+        Timestamp string     `json:"timestamp"`
+        Data      []Language `json:"data"`
+    }
+    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
         return nil, err
     }
-
-    return languages, nil
+    return result.Data, nil
 }
 
-func (c *Client) TranslateText(text []string, targetLang string, sourceLang string) (*TranslationResponse, error) {
+func (c *Client) TranslateText(text, targetLanguage, sourceLanguage string) (*TranslationResponse, error) {
     reqBody := TranslationRequest{
-        SourceLang: sourceLang,
-        TargetLang: targetLang,
-        Text:       text,
+        SourceLanguage: sourceLanguage,
+        TargetLanguage: targetLanguage,
+        Text:          text,
     }
 
     bodyBytes, err := json.Marshal(reqBody)
@@ -85,11 +83,10 @@ func (c *Client) TranslateText(text []string, targetLang string, sourceLang stri
         return nil, err
     }
 
-    req, err := http.NewRequest("POST", fmt.Sprintf("%s/v1/translate/", c.BaseURL), bytes.NewBuffer(bodyBytes))
+    req, err := http.NewRequest("POST", fmt.Sprintf("%s/translation/translate-text", c.BaseURL), bytes.NewBuffer(bodyBytes))
     if err != nil {
         return nil, err
     }
-
     req.Header.Set("X-Api-Key", c.APIKey)
     req.Header.Set("Content-Type", "application/json")
 
@@ -107,38 +104,6 @@ func (c *Client) TranslateText(text []string, targetLang string, sourceLang stri
     return &translationResp, nil
 }
 
-func (c *Client) ExtractGlossary(text string) (*GlossaryResponse, error) {
-    reqBody := GlossaryRequest{
-        Text: text,
-    }
-
-    bodyBytes, err := json.Marshal(reqBody)
-    if err != nil {
-        return nil, err
-    }
-
-    req, err := http.NewRequest("POST", fmt.Sprintf("%s/v1/glossaries/extract", c.BaseURL), bytes.NewBuffer(bodyBytes))
-    if err != nil {
-        return nil, err
-    }
-
-    req.Header.Set("X-Api-Key", c.APIKey)
-    req.Header.Set("Content-Type", "application/json")
-
-    resp, err := c.HTTPClient.Do(req)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
-
-    var glossaryResp GlossaryResponse
-    if err := json.NewDecoder(resp.Body).Decode(&glossaryResp); err != nil {
-        return nil, err
-    }
-
-    return &glossaryResp, nil
-}
-
 // Example usage
 func main() {
     client := NewClient("your_api_key_here")
@@ -151,17 +116,10 @@ func main() {
     fmt.Printf("Supported languages: %+v\n", languages)
 
     // Translate text
-    translation, err := client.TranslateText([]string{"Hello, world!"}, "de", "auto")
+    translation, err := client.TranslateText("Hello, world!", "de", "auto")
     if err != nil {
         panic(err)
     }
     fmt.Printf("Translation: %+v\n", translation)
-
-    // Extract glossary
-    glossary, err := client.ExtractGlossary("API is an Application Programming Interface")
-    if err != nil {
-        panic(err)
-    }
-    fmt.Printf("Glossary: %+v\n", glossary)
 }
 ```

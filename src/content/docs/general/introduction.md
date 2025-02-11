@@ -3,7 +3,7 @@ title: Algebras API Documentation
 description: API reference and documentation for the Algebras API
 ---
 
-Welcome to the Algebras API documentation. This API provides translation and glossary services with secure authentication.
+Welcome to the Algebras API documentation. This API provides translation services with secure authentication.
 
 ## Authentication
 
@@ -14,24 +14,123 @@ X-Api-Key: your_api_key_here
 ```
 
 ```bash
-# Get list of supported languages
-curl -X GET "https://platform.algebras.ai/api/v1/languages/" \
+# Get API health status
+curl -X GET "https://platform.algebras.ai/api/v1/health" \
      -H "X-Api-Key: your_api_key_here"
 ```
 
 ## Available Endpoints
 
-The API provides the following main endpoints:
+### Health Check
 
-1. [Language Support](/api/languages) - Get information about supported languages
-2. [Translation](/api/translation) - Translate text between languages
-3. [Glossary Extraction](/api/glossary) - Extract terms and definitions from text
+**Endpoint:** `GET /health`
+
+Checks the API's health status.
+
+**Response Example:**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "health": "up",
+    "version": "1.0.0"
+  }
+}
+```
+
+### Language Support
+
+**Endpoint:** `GET /translation/languages`
+
+Retrieves the list of supported languages.
+
+**Response Example:**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": [
+    {
+      "language": "en",
+      "name": "English"
+    },
+    {
+      "language": "de",
+      "name": "German"
+    }
+  ]
+}
+```
+
+```bash
+# Get list of supported languages
+curl -X GET "https://platform.algebras.ai/api/v1/translation/languages" \
+     -H "X-Api-Key: your_api_key_here"
+```
+
+### Translation
+
+**Endpoint:** `POST /translation/translate-text`
+
+Translates the given text to the target language.
+
+**Request Body:**
+
+```json
+{
+  "sourceLanguage": "auto",
+  "targetLanguage": "de",
+  "text": "Hello, World!"
+}
+```
+
+**Response Example:**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "text": "Hallo, Welt!"
+  }
+}
+```
+
+```bash
+# Translate text from English to German
+curl -X POST "https://platform.algebras.ai/api/v1/translation/translate-text" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "sourceLanguage": "auto",
+       "targetLanguage": "de",
+       "text": "Hello, World!"
+     }'
+```
 
 ## Error Handling
 
-The API uses standard HTTP status codes and provides detailed error messages when validation fails. Common error responses include:
+The API uses standard HTTP status codes and provides detailed error messages when validation fails.
 
-- `422 Validation Error` - Request validation failed
-- Validation errors include detailed information about the location and nature of the error
+### Common Errors
+
+- **400 Bad Request**: Invalid input parameters.
+- **401 Unauthorized**: Missing or invalid API key.
+- **422 Validation Error**: Request validation failed.
+
+**Example 400 Error Response:**
+
+```json
+{
+  "status": "error",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "error": {
+    "message": "Invalid source language code."
+  }
+}
+```
 
 For detailed information about each endpoint and feature, please refer to the specific documentation sections.
