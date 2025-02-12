@@ -7,7 +7,7 @@ description: API endpoints for text translation
 
 Translate text between supported languages.
 
-**Endpoint:** `POST /translation/translate-text`
+**Endpoint:** `POST /translation/translate`
 
 ### Request Body
 
@@ -54,7 +54,7 @@ Parameters:
 ### Example Request
 
 ```bash
-curl -X POST "https://platform.algebras.ai/api/v1/translation/translate-text" \
+curl -X POST "https://platform.algebras.ai/api/v1/translation/translate" \
      -H "X-Api-Key: your_api_key_here" \
      -H "Content-Type: application/json" \
      -d '{

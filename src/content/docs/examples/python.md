@@ -26,7 +26,7 @@ class AlgebrasAPI:
     def translate_text(self, text: str, target_language: str, source_language: str = "auto") -> str:
         """Translate text to target language."""
         response = requests.post(
-            f"{self.base_url}/translation/translate-text",
+            f"{self.base_url}/translation/translate",
             headers=self.headers,
             json={
                 "sourceLanguage": source_language,

@@ -32,7 +32,7 @@ async function getLanguages() {
 // Translate text
 async function translateText(text, targetLanguage, sourceLanguage = 'auto') {
   try {
-    const response = await fetch(`${BASE_URL}/translation/translate-text`, {
+    const response = await fetch(`${BASE_URL}/translation/translate`, {
       method: 'POST',
       headers,
       body: JSON.stringify({

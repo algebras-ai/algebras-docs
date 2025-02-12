@@ -83,7 +83,7 @@ func (c *Client) TranslateText(text, targetLanguage, sourceLanguage string) (*Tr
         return nil, err
     }
 
-    req, err := http.NewRequest("POST", fmt.Sprintf("%s/translation/translate-text", c.BaseURL), bytes.NewBuffer(bodyBytes))
+    req, err := http.NewRequest("POST", fmt.Sprintf("%s/translation/translate", c.BaseURL), bytes.NewBuffer(bodyBytes))
     if err != nil {
         return nil, err
     }

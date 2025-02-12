@@ -73,7 +73,7 @@ curl -X GET "https://platform.algebras.ai/api/v1/translation/languages" \
 
 ### Translation
 
-**Endpoint:** `POST /translation/translate-text`
+**Endpoint:** `POST /translation/translate`
 
 Translates the given text to the target language.
 
@@ -101,7 +101,7 @@ Translates the given text to the target language.
 
 ```bash
 # Translate text from English to German
-curl -X POST "https://platform.algebras.ai/api/v1/translation/translate-text" \
+curl -X POST "https://platform.algebras.ai/api/v1/translation/translate" \
      -H "X-Api-Key: your_api_key_here" \
      -H "Content-Type: application/json" \
      -d '{
