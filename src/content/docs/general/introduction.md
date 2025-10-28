@@ -93,9 +93,7 @@ Translates the given text to the target language.
 {
   "status": "ok",
   "timestamp": "2025-01-12T22:31:48.856Z",
-  "data": {
-    "text": "Hallo, Welt!"
-  }
+  "data": "Hallo, Welt!"
 }
 ```
 

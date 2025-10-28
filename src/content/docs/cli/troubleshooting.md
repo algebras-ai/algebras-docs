@@ -1,0 +1,373 @@
+---
+title: Troubleshooting
+description: Common issues and solutions for Algebras CLI
+---
+
+This guide covers common issues you might encounter when using the Algebras CLI and their solutions.
+
+## Installation Issues
+
+### "command not found: algebras"
+
+**Cause:** The CLI wasn't added to your PATH after installation.
+
+**Solutions:**
+
+1. **Restart your terminal** after installation
+2. **Add pip user bin to PATH:**
+   ```bash
+   echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+3. **Use full path:**
+   ```bash
+   python -m algebras --version
+   ```
+
+### Permission Denied Errors
+
+**Cause:** Insufficient permissions to install packages globally.
+
+**Solutions:**
+
+1. **Use --user flag:**
+   ```bash
+   pip install --user algebras-cli
+   ```
+2. **Use virtual environment:**
+   ```bash
+   python -m venv algebras-env
+   source algebras-env/bin/activate  # On Windows: algebras-env\Scripts\activate
+   pip install algebras-cli
+   ```
+
+### Python Version Issues
+
+**Cause:** Using an outdated Python version.
+
+**Solutions:**
+
+1. **Check Python version:**
+   ```bash
+   python --version
+   ```
+2. **Upgrade Python** to version 3.8 or higher
+3. **Use specific Python version:**
+   ```bash
+   python3.8 -m pip install algebras-cli
+   ```
+
+## Configuration Issues
+
+### "No Algebras configuration found"
+
+**Cause:** No `.algebras.config` file exists in the current directory.
+
+**Solutions:**
+
+1. **Run init command:**
+   ```bash
+   algebras init
+   ```
+2. **Ensure you're in the correct project directory**
+3. **Check if config file exists:**
+   ```bash
+   ls -la .algebras.config
+   ```
+
+### "Language 'xx' is not configured"
+
+**Cause:** The specified language is not in your configuration.
+
+**Solutions:**
+
+1. **Add the language:**
+   ```bash
+   algebras add xx
+   ```
+2. **Check available languages:**
+   ```bash
+   algebras status
+   ```
+3. **Verify language code format** (e.g., `pt_BR` not `pt-BR`)
+
+### "No source files found"
+
+**Cause:** No source files match your configuration.
+
+**Solutions:**
+
+1. **Check source file paths in `.algebras.config`**
+2. **Run init to regenerate configuration:**
+   ```bash
+   algebras init --force
+   ```
+3. **Verify files exist:**
+   ```bash
+   ls -la src/locales/en/
+   ```
+4. **Check file permissions**
+
+### Configuration Validation Errors
+
+**Cause:** Invalid YAML syntax or configuration values.
+
+**Solutions:**
+
+1. **Check YAML syntax:**
+   ```bash
+   algebras status
+   ```
+2. **Validate file paths exist**
+3. **Ensure language codes are valid**
+4. **Check for typos in configuration**
+
+## API Issues
+
+### "ALGEBRAS_API_KEY environment variable is not set"
+
+**Cause:** API key not configured.
+
+**Solutions:**
+
+1. **Set your API key:**
+   ```bash
+   export ALGEBRAS_API_KEY=your_api_key_here
+   ```
+2. **Get your API key** from the [Algebras dashboard](https://platform.algebras.ai/api-keys)
+3. **Add to shell profile** for persistence:
+   ```bash
+   echo 'export ALGEBRAS_API_KEY=your_api_key_here' >> ~/.bashrc
+   ```
+
+### "401 Unauthorized" API Error
+
+**Cause:** Invalid or missing API key.
+
+**Solutions:**
+
+1. **Verify API key is correct**
+2. **Check API key is set:**
+   ```bash
+   echo $ALGEBRAS_API_KEY
+   ```
+3. **Regenerate API key** if needed
+4. **Ensure no extra spaces** in API key
+
+### "402 Payment Required" API Error
+
+**Cause:** Quota exceeded or payment required.
+
+**Solutions:**
+
+1. **Check your account quota**
+2. **Upgrade your plan** if needed
+3. **Wait for quota reset** (usually monthly)
+4. **Contact support** for quota issues
+
+### "500 Internal Server Error"
+
+**Cause:** Server-side error.
+
+**Solutions:**
+
+1. **Retry the operation**
+2. **Check service status**
+3. **Reduce batch size** if using batch processing
+4. **Contact support** if persistent
+
+## Translation Issues
+
+### Translation Quality Issues
+
+**Cause:** Poor translation quality or inconsistent terminology.
+
+**Solutions:**
+
+1. **Use UI-safe mode:**
+   ```bash
+   algebras translate --ui-safe
+   ```
+2. **Upload a glossary** for consistent terminology
+3. **Use custom prompts** for specific requirements:
+   ```bash
+   algebras translate --prompt "Translate to {target_language} maintaining a professional tone"
+   ```
+4. **Review and edit** translations manually
+
+### Performance Issues
+
+**Cause:** Slow translation processing.
+
+**Solutions:**
+
+1. **Adjust batch size:**
+   ```bash
+   algebras translate --batch-size 10
+   ```
+2. **Control parallel batches:**
+   ```bash
+   algebras translate --max-parallel-batches 3
+   ```
+3. **Use only-missing flag:**
+   ```bash
+   algebras translate --only-missing
+   ```
+4. **Check network connectivity**
+
+### Rate Limit Errors
+
+**Cause:** Too many requests to the API.
+
+**Solutions:**
+
+1. **Reduce parallel batches:**
+   ```bash
+   algebras translate --max-parallel-batches 1
+   ```
+2. **Increase batch size:**
+   ```bash
+   algebras translate --batch-size 50
+   ```
+3. **Add delays between requests**
+4. **Upgrade your plan** for higher limits
+
+## File System Issues
+
+### Permission Denied Writing Files
+
+**Cause:** Insufficient permissions to write translation files.
+
+**Solutions:**
+
+1. **Check directory permissions:**
+   ```bash
+   ls -la src/locales/
+   ```
+2. **Fix permissions:**
+   ```bash
+   chmod 755 src/locales/
+   ```
+3. **Run with appropriate user permissions**
+
+### File Not Found Errors
+
+**Cause:** Source files don't exist or paths are incorrect.
+
+**Solutions:**
+
+1. **Verify file paths in configuration**
+2. **Check file existence:**
+   ```bash
+   find . -name "*.json" -path "*/en/*"
+   ```
+3. **Update configuration** with correct paths
+4. **Regenerate configuration:**
+   ```bash
+   algebras init --force
+   ```
+
+## Git Integration Issues
+
+### Unnecessary Translations
+
+**Cause:** Git integration not working properly.
+
+**Solutions:**
+
+1. **Ensure source files are tracked in Git**
+2. **Check Git status:**
+   ```bash
+   git status
+   ```
+3. **Use only-missing flag:**
+   ```bash
+   algebras translate --only-missing
+   ```
+4. **Verify Git repository** is properly initialized
+
+### Translation Files Not Committed
+
+**Cause:** Translation files not added to Git.
+
+**Solutions:**
+
+1. **Add translation files:**
+   ```bash
+   git add src/locales/
+   ```
+2. **Commit changes:**
+   ```bash
+   git commit -m "Update translations"
+   ```
+3. **Set up pre-commit hooks** for automation
+
+## Getting Help
+
+### Debug Information
+
+Enable verbose output for debugging:
+
+```bash
+algebras translate --verbose
+```
+
+### Check Configuration
+
+Validate your setup:
+
+```bash
+algebras status
+```
+
+### Log Files
+
+Check for log files in:
+- `~/.algebras/logs/`
+- Project directory logs
+
+### Support Resources
+
+1. **[GitHub Issues](https://github.com/algebras-ai/algebras-cli/issues)** - Report bugs or ask questions
+2. **[Documentation](/cli/)** - Complete CLI reference
+3. **[Support Email](mailto:support@algebras.ai)** - Get help from our team
+4. **[Community Forum](https://github.com/algebras-ai/algebras-cli/discussions)** - Community support
+
+### Reporting Issues
+
+When reporting issues, include:
+
+1. **CLI version:** `algebras --version`
+2. **Python version:** `python --version`
+3. **Operating system**
+4. **Error messages** (full output)
+5. **Configuration file** (remove sensitive data)
+6. **Steps to reproduce**
+
+## Prevention Tips
+
+### Best Practices
+
+1. **Always test** with a small subset first
+2. **Use version control** for all files
+3. **Backup** before major translations
+4. **Monitor quotas** and usage
+5. **Use UI-safe mode** for UI strings
+6. **Set up glossaries** for consistency
+
+### Regular Maintenance
+
+1. **Update CLI regularly:**
+   ```bash
+   pip install --upgrade algebras-cli
+   ```
+2. **Review translations** periodically
+3. **Update glossaries** as needed
+4. **Monitor API usage**
+5. **Clean up old files**
+
+## Next Steps
+
+- **[CLI Commands](/cli/commands/)** - Complete command reference
+- **[Advanced Features](/cli/advanced/)** - Explore advanced capabilities
+- **[Configuration](/cli/configuration/)** - Detailed configuration options

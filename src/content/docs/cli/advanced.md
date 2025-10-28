@@ -1,0 +1,336 @@
+---
+title: Advanced Features
+description: Advanced features and capabilities of Algebras CLI
+---
+
+The Algebras CLI offers several advanced features to optimize your localization workflow, including UI-safe translations, custom prompts, glossary management, batch processing, and Git integration.
+
+## UI-Safe Translations
+
+The `--ui-safe` flag ensures that translations won't exceed the original text length, which is crucial for maintaining consistent UI layouts.
+
+### Usage
+
+```bash
+algebras translate --ui-safe
+algebras update --ui-safe
+```
+
+### When to Use
+
+- UI strings with length constraints
+- Button labels and navigation items
+- Form field labels
+- Mobile app interfaces
+- Responsive web designs
+
+### Example
+
+```bash
+# Original: "Submit"
+# UI-Safe Translation: "Enviar" (5 chars)
+# Regular Translation: "Enviar formulario" (15 chars)
+```
+
+## Custom Translation Prompts
+
+You can provide custom prompts for more specific translation requirements.
+
+### Using Prompt Files
+
+Create a prompt file:
+
+```bash
+echo "Translate to {target_language} maintaining a professional tone for a business application" > custom-prompt.txt
+```
+
+Use the prompt file:
+
+```bash
+algebras translate --prompt-file custom-prompt.txt
+```
+
+### Using Inline Prompts
+
+```bash
+algebras translate --prompt "Translate to {target_language} using casual, friendly language"
+```
+
+### Setting Default Prompts
+
+```bash
+algebras configure --prompt "Translate to {target_language} maintaining a professional tone"
+```
+
+### Prompt Variables
+
+Available variables in prompts:
+- `{target_language}` - Target language name
+- `{source_language}` - Source language name
+- `{context}` - Translation context (if available)
+
+## Glossary Management
+
+Algebras CLI supports glossary management for consistent terminology across translations.
+
+### Creating Glossaries
+
+Glossaries can be created through the platform or uploaded from CSV/XLSX files.
+
+### Using Glossaries
+
+```bash
+algebras translate --glossary-id glossary-123
+```
+
+### Glossary Benefits
+
+- Consistent terminology across translations
+- Domain-specific vocabulary
+- Brand name preservation
+- Technical term accuracy
+
+## Batch Processing
+
+Optimize translation performance with batch processing settings.
+
+### Adjusting Batch Size
+
+```bash
+# Process 10 translations per batch
+algebras translate --batch-size 10
+```
+
+### Controlling Parallel Batches
+
+```bash
+# Run maximum 3 batches in parallel
+algebras translate --max-parallel-batches 3
+```
+
+### Configuring Defaults
+
+```bash
+algebras configure --batch-size 10 --max-parallel-batches 3
+```
+
+### Performance Tips
+
+- **Smaller batch sizes** (5-10) for better error handling
+- **Larger batch sizes** (20-50) for faster processing
+- **Fewer parallel batches** for rate limit compliance
+- **More parallel batches** for maximum throughput
+
+## Git Integration
+
+Algebras CLI automatically tracks translation changes using Git.
+
+### Automatic Git Detection
+
+The CLI automatically:
+- Detects outdated keys by comparing modification times
+- Validates translations against source file changes
+- Skips unnecessary translations
+
+### Git-Friendly Commands
+
+```bash
+# Skip git validation (useful for CI)
+algebras translate --only-missing
+
+# CI-friendly command
+algebras ci --fail-on-error
+```
+
+### Git Workflow Integration
+
+```bash
+# 1. Make changes to source files
+git add src/locales/en/
+git commit -m "Update English strings"
+
+# 2. Update translations
+algebras update
+
+# 3. Commit translation changes
+git add src/locales/
+git commit -m "Update translations"
+```
+
+## String Normalization
+
+Control how strings are processed before translation.
+
+### Enable String Normalization
+
+```bash
+algebras configure --normalize-strings true
+```
+
+This removes escaped characters like `\'` and normalizes whitespace.
+
+### Disable String Normalization
+
+```bash
+algebras configure --normalize-strings false
+```
+
+This preserves all characters exactly as they appear.
+
+### When to Use Each Mode
+
+**Enable normalization for:**
+- User-facing text
+- Clean, readable translations
+- Standard localization files
+
+**Disable normalization for:**
+- Code strings
+- Technical documentation
+- Strings with special formatting
+
+## Advanced Configuration Options
+
+### Custom API Settings
+
+```yaml
+api:
+  provider: algebras-ai
+  model: gpt-4
+  batch_size: 15
+  max_parallel_batches: 2
+  normalize_strings: true
+```
+
+### Environment Variables
+
+```bash
+export ALGEBRAS_BATCH_SIZE=15
+export ALGEBRAS_MAX_PARALLEL_BATCHES=2
+export ALGEBRAS_BASE_URL=https://custom-api.example.com
+```
+
+## Workflow Optimization
+
+### Incremental Updates
+
+```bash
+# Only translate missing or outdated keys
+algebras update --only-missing
+```
+
+### Selective Translation
+
+```bash
+# Translate specific languages
+algebras translate --languages es fr
+```
+
+### Quality Assurance
+
+```bash
+# Use UI-safe mode for UI strings
+algebras translate --ui-safe --glossary-id ui-terms
+
+# Use custom prompt for technical content
+algebras translate --prompt-file technical-prompt.txt
+```
+
+## Performance Monitoring
+
+### Verbose Output
+
+```bash
+algebras translate --verbose
+```
+
+Shows detailed progress information including:
+- Batch processing status
+- Translation timing
+- Error details
+- Performance metrics
+
+### Status Monitoring
+
+```bash
+algebras status
+```
+
+Shows:
+- Configuration status
+- Recent translation history
+- Performance statistics
+- Error counts
+
+## Integration Examples
+
+### CI/CD Pipeline
+
+```yaml
+# .github/workflows/translate.yml
+name: Update Translations
+on:
+  push:
+    paths: ['src/locales/en/**']
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install Algebras CLI
+        run: pip install algebras-cli
+      - name: Update Translations
+        run: algebras ci --only-missing --fail-on-error
+        env:
+          ALGEBRAS_API_KEY: ${{ secrets.ALGEBRAS_API_KEY }}
+```
+
+### Pre-commit Hook
+
+```bash
+#!/bin/bash
+# .git/hooks/pre-commit
+
+# Check if English locale files changed
+if git diff --cached --name-only | grep -q "src/locales/en/"; then
+    echo "English locale files changed, updating translations..."
+    algebras update --only-missing
+    git add src/locales/
+fi
+```
+
+## Troubleshooting Advanced Features
+
+### UI-Safe Issues
+
+**Problem:** Translations still too long
+**Solution:** Check glossary terms and adjust prompt specificity
+
+### Batch Processing Errors
+
+**Problem:** Rate limit errors
+**Solution:** Reduce `--max-parallel-batches` or increase `--batch-size`
+
+### Git Integration Issues
+
+**Problem:** Unnecessary translations
+**Solution:** Ensure source files are properly tracked in Git
+
+### Performance Issues
+
+**Problem:** Slow translations
+**Solutions:**
+- Increase `--batch-size`
+- Increase `--max-parallel-batches`
+- Use `--only-missing` for updates
+
+## Next Steps
+
+- **[Troubleshooting](/cli/troubleshooting/)** - Common issues and solutions
+- **[Commands Reference](/cli/commands/)** - Complete command reference
+- **[Configuration](/cli/configuration/)** - Detailed configuration options

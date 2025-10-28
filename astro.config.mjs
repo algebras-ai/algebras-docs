@@ -17,7 +17,20 @@ export default defineConfig({
       sidebar: [
         {
           label: 'General',
-          items: [{ label: 'Introduction', slug: 'general/introduction' }],
+          items: [
+            { label: 'Introduction', slug: 'general/introduction' },
+            { label: 'Getting Started', slug: 'general/getting-started' }
+          ],
+        },
+        {
+          label: 'CLI',
+          items: [
+            { label: 'Installation', slug: 'cli/installation' },
+            { label: 'Configuration', slug: 'cli/configuration' },
+            { label: 'Commands', slug: 'cli/commands' },
+            { label: 'Advanced Features', slug: 'cli/advanced' },
+            { label: 'Troubleshooting', slug: 'cli/troubleshooting' }
+          ],
         },
         {
           label: 'API',
