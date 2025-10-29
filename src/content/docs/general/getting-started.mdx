@@ -1,0 +1,154 @@
+---
+title: Getting Started
+description: Quick start guide for Algebras CLI and API
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+Welcome to Algebras! This guide will help you get up and running quickly with either our CLI tool or API. Choose the path that works best for your workflow.
+
+## Prerequisites
+
+Before you begin, you'll need:
+
+1. **An Algebras account** - [Sign up here](https://platform.algebras.ai/)
+2. **An API key** - [Create one here](https://platform.algebras.ai/api-keys)
+
+:::tip
+Keep your API key secure! Never commit it to version control or share it publicly.
+:::
+
+## Choose Your Path
+
+<CardGrid>
+  <Card title="CLI Quick Start" icon="terminal">
+    Perfect for developers who want to translate files locally and integrate with their build process.
+  </Card>
+  <Card title="API Quick Start" icon="code">
+    Ideal for developers building applications that need translation services programmatically.
+  </Card>
+</CardGrid>
+
+## Path 1: CLI Quick Start (5 minutes)
+
+The Algebras CLI is perfect for translating localization files in your project. Here's how to get started:
+
+### Step 1: Install the CLI
+
+```bash
+pip install algebras-cli
+```
+
+### Step 2: Initialize Your Project
+
+```bash
+algebras init
+```
+
+This creates a `.algebras.config` file in your project root.
+
+### Step 3: Set Your API Key
+
+```bash
+export ALGEBRAS_API_KEY=your_api_key_here
+```
+
+### Step 4: Add Languages
+
+```bash
+algebras add es fr de
+```
+
+### Step 5: Translate Your Files
+
+```bash
+algebras translate
+```
+
+🎉 **Success!** Your files are now translated. Check the generated language directories.
+
+:::note
+The CLI automatically detects your source files and creates translations in the appropriate directories based on your configuration.
+:::
+
+## Path 2: API Quick Start (2 minutes)
+
+Make your first translation request in just a few lines of code:
+
+### Step 1: Set Your API Key
+
+```bash
+export ALGEBRAS_API_KEY=your_api_key_here
+```
+
+### Step 2: Make Your First Translation
+
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/translate" \
+     -H "X-Api-Key: $ALGEBRAS_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "sourceLanguage": "auto",
+       "targetLanguage": "es",
+       "text": "Hello, world!"
+     }'
+```
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": "¡Hola, mundo!"
+}
+```
+
+🎉 **Success!** You've made your first translation!
+
+## Next Steps
+
+Now that you have the basics working, explore these advanced features:
+
+### For CLI Users
+
+- **[CLI Installation Guide](/cli/installation/)** - Detailed installation options
+- **[CLI Configuration](/cli/configuration/)** - Advanced configuration options
+- **[CLI Commands](/cli/commands/)** - Complete command reference
+- **[CLI Advanced Features](/cli/advanced/)** - UI-safe translations, glossaries, batch processing
+
+### For API Users
+
+- **[API Examples](/examples/)** - Code examples in multiple languages
+- **[Translation API](/api/translation/)** - Complete API reference
+- **[Languages API](/api/languages/)** - Supported languages
+
+## Common Issues & Solutions
+
+### "No Algebras configuration found"
+**Solution:** Run `algebras init` in your project directory.
+
+### "ALGEBRAS_API_KEY environment variable is not set"
+**Solution:** Export your API key: `export ALGEBRAS_API_KEY=your_key`
+
+### "Language 'xx' is not configured"
+**Solution:** Add the language: `algebras add xx`
+
+### "401 Unauthorized" API error
+**Solution:** Check that your API key is correct and properly set in the `X-Api-Key` header.
+
+### Translation quality issues
+**Solutions:**
+- Use `--ui-safe` flag for UI-constrained translations
+- Upload a glossary for consistent terminology
+- Use custom prompts for specific requirements
+
+## Need Help?
+
+- 📚 **[CLI Documentation](/cli/)** - Complete CLI reference
+- 🔗 **[API Documentation](/api/)** - Full API reference
+- 💬 **[GitHub Issues](https://github.com/algebras-ai/algebras-cli/issues)** - Report bugs or ask questions
+- 📧 **[Support](mailto:support@algebras.ai)** - Get help from our team
+
+---
+
+Ready to dive deeper? Check out our [CLI documentation](/cli/) or [API examples](/examples/) for more advanced usage patterns.

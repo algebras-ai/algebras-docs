@@ -17,15 +17,18 @@ export default defineConfig({
       sidebar: [
         {
           label: 'General',
-          items: [{ label: 'Introduction', slug: 'general/introduction' }],
+          items: [
+            { label: 'Introduction', slug: 'general/introduction' },
+            { label: 'Getting Started', slug: 'general/getting-started' }
+          ],
+        },
+        {
+          label: 'CLI',
+          autogenerate: { directory: 'cli' },
         },
         {
           label: 'API',
           autogenerate: { directory: 'api' },
-        },
-        {
-          label: 'Examples',
-          autogenerate: { directory: 'examples' },
         },
       ],
     }),
