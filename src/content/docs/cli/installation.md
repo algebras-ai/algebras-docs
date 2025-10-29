@@ -7,7 +7,7 @@ The Algebras CLI can be installed using pip, pipx, or other Python package manag
 
 ## Prerequisites
 
-- Python 3.8 or higher
+- Python 3.12 or higher
 - pip (Python package installer)
 
 ## Installation Methods
