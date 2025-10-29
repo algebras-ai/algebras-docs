@@ -36,10 +36,6 @@ export default defineConfig({
           label: 'API',
           autogenerate: { directory: 'api' },
         },
-        {
-          label: 'Examples',
-          autogenerate: { directory: 'examples' },
-        },
       ],
     }),
     react(),
