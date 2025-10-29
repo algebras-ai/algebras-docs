@@ -25,6 +25,7 @@ export default defineConfig({
         {
           label: 'CLI',
           items: [
+            { label: 'Use Cases', slug: 'cli/use-cases' },
             { label: 'Installation', slug: 'cli/installation' },
             { label: 'Configuration', slug: 'cli/configuration' },
             { label: 'Commands', slug: 'cli/commands' },
