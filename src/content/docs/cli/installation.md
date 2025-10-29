@@ -57,6 +57,68 @@ You should see output like:
 algebras-cli version 1.0.0
 ```
 
+## Getting Your API Key
+
+Before you can use the Algebras CLI, you'll need an API key to authenticate with the Algebras platform.
+
+### Step 1: Sign Up or Log In
+
+1. Visit the [Algebras platform](https://platform.algebras.ai/)
+2. Sign up for a new account or log in to your existing account
+
+### Step 2: Create an API Key
+
+1. Navigate to the [API Keys page](https://platform.algebras.ai/api-keys)
+2. Click **"Create API Key"** or **"New API Key"**
+3. Give your API key a descriptive name (e.g., "CLI Development Key")
+4. Copy your API key immediately - you won't be able to see it again!
+
+:::warning
+Keep your API key secure! Never commit it to version control or share it publicly. Treat it like a password.
+:::
+
+### Step 3: Set Your API Key
+
+Set the API key as an environment variable in your terminal:
+
+**Linux/macOS:**
+```bash
+export ALGEBRAS_API_KEY=your_api_key_here
+```
+
+**Windows (Command Prompt):**
+```cmd
+set ALGEBRAS_API_KEY=your_api_key_here
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:ALGEBRAS_API_KEY="your_api_key_here"
+```
+
+### Step 4: Make Your API Key Persistent (Optional)
+
+To avoid setting the API key every time you open a new terminal:
+
+**Linux/macOS (bash):**
+```bash
+echo 'export ALGEBRAS_API_KEY=your_api_key_here' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Linux/macOS (zsh):**
+```bash
+echo 'export ALGEBRAS_API_KEY=your_api_key_here' >> ~/.zshrc
+source ~/.zshrc
+```
+
+**Windows (Permanent):**
+Add it as a system environment variable through System Properties.
+
+:::note
+For production environments, consider using a secrets manager or environment variable management tool instead of hardcoding the key.
+:::
+
 ## Platform-Specific Instructions
 
 ### Windows
