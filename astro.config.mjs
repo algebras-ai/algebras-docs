@@ -24,14 +24,7 @@ export default defineConfig({
         },
         {
           label: 'CLI',
-          items: [
-            { label: 'Use Cases', slug: 'cli/use-cases' },
-            { label: 'Installation', slug: 'cli/installation' },
-            { label: 'Configuration', slug: 'cli/configuration' },
-            { label: 'Commands', slug: 'cli/commands' },
-            { label: 'Advanced Features', slug: 'cli/advanced' },
-            { label: 'Troubleshooting', slug: 'cli/troubleshooting' }
-          ],
+          autogenerate: { directory: 'cli' },
         },
         {
           label: 'API',
