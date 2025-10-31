@@ -15,7 +15,7 @@ The Algebras CLI can be installed using pip, pipx, or other Python package manag
 ### Method 1: Using pip (Recommended)
 
 ```bash
-pip install algebras-cli
+pip install git+https://github.com/algebras-ai/algebras-cli.git
 ```
 
 ### Method 2: Using pipx (Isolated Environment)
@@ -124,19 +124,19 @@ For production environments, consider using a secrets manager or environment var
 ### Windows
 
 1. Open Command Prompt or PowerShell
-2. Run: `pip install algebras-cli`
+2. Run: `pip install git+https://github.com/algebras-ai/algebras-cli.git`
 3. Verify: `algebras --version`
 
 ### macOS
 
 1. Open Terminal
-2. Run: `pip install algebras-cli`
+2. Run: `pip install git+https://github.com/algebras-ai/algebras-cli.git`
 3. Verify: `algebras --version`
 
 ### Linux (Ubuntu/Debian)
 
 1. Open Terminal
-2. Run: `pip install algebras-cli`
+2. Run: `pip install git+https://github.com/algebras-ai/algebras-cli.git`
 3. Verify: `algebras --version`
 
 :::note
@@ -174,7 +174,7 @@ On some Linux distributions, you may need to use `pip3` instead of `pip`.
    ```bash
    python -m venv algebras-env
    source algebras-env/bin/activate  # On Windows: algebras-env\Scripts\activate
-   pip install algebras-cli
+   pip install git+https://github.com/algebras-ai/algebras-cli.git
    ```
 
 ### Python Version Issues
@@ -189,7 +189,7 @@ On some Linux distributions, you may need to use `pip3` instead of `pip`.
 2. **Upgrade Python** to version 3.8 or higher
 3. **Use specific Python version:**
    ```bash
-   python3.8 -m pip install algebras-cli
+   python -m pip install git+https://github.com/algebras-ai/algebras-cli.git
    ```
 
 ## Next Steps

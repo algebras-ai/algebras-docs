@@ -283,7 +283,7 @@ jobs:
         with:
           python-version: '3.9'
       - name: Install Algebras CLI
-        run: pip install algebras-cli
+        run: pip install git+https://github.com/algebras-ai/algebras-cli.git
       - name: Update Translations
         run: algebras ci --only-missing --fail-on-error
         env:
