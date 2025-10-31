@@ -1,0 +1,25 @@
+---
+title: API Keys
+description: Create and manage API keys securely.
+---
+
+## Create a key
+1. Open API Keys.
+2. Click Create key and add a label.
+3. Copy the key once; it may not be shown again.
+
+## Manage
+- Revoke compromised or unused keys.
+- Rotate keys periodically (create new, update apps, then revoke old).
+- Restrict usage if scopes/IP allowlists are available.
+
+## Use
+- Send the key as an Authorization header (e.g., `Bearer <key>`).
+- Store in secrets managers, not in code or repos.
+
+## Security tips
+- Limit access to least privilege.
+- Never share in tickets or chats.
+- Monitor usage; revoke on anomalies.
+
+

@@ -41,7 +41,7 @@ algebras update --ui-safe`}</code>
         <h3>Using Prompt Files</h3>
         <p>Create a prompt file:</p>
         <pre className="code-block">
-          <code className="language-bash">echo "Translate to {target_language} maintaining a professional tone for a business application" > custom-prompt.txt</code>
+          <code className="language-bash">echo "Translate to {target_language} maintaining a professional tone for a business application" &gt; custom-prompt.txt</code>
         </pre>
         <p>Use the prompt file:</p>
         <pre className="code-block">
@@ -268,7 +268,7 @@ jobs:
       - name: Update Translations
         run: algebras ci --only-missing --fail-on-error
         env:
-          ALGEBRAS_API_KEY: ${{ secrets.ALGEBRAS_API_KEY }}`}</code>
+          ALGEBRAS_API_KEY: \${{ secrets.ALGEBRAS_API_KEY }}`}</code>
         </pre>
         
         <h3>Pre-commit Hook</h3>
