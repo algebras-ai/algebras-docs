@@ -23,16 +23,16 @@ export default defineConfig({
           ],
         },
         {
-          label: 'CLI',
-          autogenerate: { directory: 'cli' },
+          label: 'Algebras Platform',
+          autogenerate: { directory: 'app' },
         },
         {
-          label: 'API',
+          label: 'Algebras API',
           autogenerate: { directory: 'api' },
         },
         {
-          label: 'App',
-          autogenerate: { directory: 'app' },
+          label: 'Algebras CLI',
+          autogenerate: { directory: 'cli' },
         },
       ],
     }),
