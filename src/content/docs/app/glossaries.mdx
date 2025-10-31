@@ -3,31 +3,89 @@ title: Glossaries
 description: Create, edit, and auto-extract terms to enforce consistent translations.
 ---
 
-## Create a glossary
-1. Go to Glossaries.
-2. Click New and name it.
-3. Add terms with source → target equivalents.
-4. Save.
+## Overview
 
-## Edit and manage
-- Add, edit, or delete terms anytime.
-- Import/export CSV for bulk updates.
-- Version by duplicating a glossary before major edits.
+Glossaries ensure consistent translation of specific terms, names, and phrases across your content. They're essential for brand consistency, technical terminology, and product names.
 
-## AI Extraction (from text/files)
-1. Create or open a glossary.
-2. Choose AI Extraction.
-3. Provide sample text or upload content.
-4. Review suggested terms; accept or adjust mappings.
-5. Save.
+## Creating a Glossary
 
-## Use during translation
-1. In Playground, attach a glossary.
-2. Run translation; terms are enforced.
-3. If a term is missed, add/update it and re-run.
+1. Navigate to **Glossaries** from the sidebar (under Translation).
+2. Click **New Glossary** or the **+** button.
+3. Enter a descriptive name for your glossary.
+4. Select the languages this glossary will support (source and target languages).
+5. Choose how to populate your glossary:
+   - **Empty**: Start with a blank glossary.
+   - **Prefill with AI Extraction**: Automatically extract terms from sample text.
+
+## Adding Terms Manually
+
+1. Open your glossary.
+2. Click **Add Terms**.
+3. Select the language pair you're adding terms for.
+4. Enter the source term and its translation.
+5. Optionally add a definition or context note.
+6. Click **Add Term**.
+7. Repeat for additional terms.
+
+## AI Extraction
+
+Extract terms automatically from your existing content:
+
+1. Open your glossary (or create a new one with "Prefill with AI Extraction").
+2. Click **Add Terms**.
+3. Select the **Extract** tab.
+4. Paste sample text (up to 150,000 characters) that contains terms you want to extract.
+5. Click **Extract**.
+6. Review the AI-suggested terms:
+   - Accept terms that are correct.
+   - Edit terms that need adjustment.
+   - Skip terms that aren't relevant.
+7. Selected terms are automatically added to your glossary.
+
+**Best practices for extraction**:
+- Use representative content that includes your key terminology.
+- Longer text samples typically yield better results.
+- Review and refine extracted terms before accepting.
+
+## Editing and Managing Terms
+
+- **Edit a term**: Click on any term in the glossary to modify it.
+- **Delete a term**: Remove individual terms as needed.
+- **Bulk import**: Import terms via CSV for large glossaries.
+- **Export**: Download your glossary as CSV for backup or migration.
+
+## Using Glossaries in Translation
+
+### In the Playground
+
+1. Open the Playground.
+2. Select your source and target languages.
+3. Choose your glossary from the glossary dropdown (only matching language pairs are shown).
+4. Run your translation - glossary terms are automatically enforced.
+5. If a term isn't applied correctly, update your glossary and re-run.
+
+### In API Calls
+
+Include the glossary ID in your API request to apply terms programmatically.
+
+## Glossary Status
+
+Glossaries have status indicators:
+- **OK**: Ready to use
+- **CREATING**: Being set up
+- **UPDATING**: Changes in progress
+- **DELETING**: Removal in progress
+- **ERROR**: An issue occurred
+
+Wait for status to be OK before using in translations.
 
 ## Tips
-- Keep terms short, unambiguous, and product-specific.
-- Prefer singular base forms; add inflections only when necessary.
+
+1. **Keep terms specific**: Generic terms may match unintentionally.
+2. **Use base forms**: Add "car" rather than "cars" - the system handles inflections.
+3. **Regular maintenance**: Review and update glossaries as your terminology evolves.
+4. **Test your glossary**: Use the Playground to verify terms are applied correctly.
+5. **Organize by domain**: Create separate glossaries for different products or domains.
+6. **Version control**: Consider duplicating glossaries before major changes for rollback capability.
 
 
