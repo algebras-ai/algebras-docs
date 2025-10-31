@@ -1,0 +1,138 @@
+---
+title: API Keys
+description: Create and manage API keys securely.
+---
+
+## Overview
+
+API keys allow you to programmatically access translation services via REST API. Keys are scoped to organizations, so each organization can have its own set of API keys.
+
+## Creating an API Key
+
+1. Navigate to **API Keys** from the sidebar (under Organization).
+2. Click **Create new API Key**.
+3. Enter a descriptive label for the key (e.g., "Production Server", "CLI Tool", "Test Environment").
+4. Click **Create**.
+5. **Important**: Copy the API key immediately - it's only shown once for security.
+6. Store the key securely before closing the dialog.
+
+**Security Note**: API keys are only displayed once during creation. If you lose a key, you must create a new one.
+
+## Using API Keys
+
+### Authentication
+
+Include your API key in the `Authorization` header of all API requests:
+
+```bash
+Authorization: Bearer <your-api-key>
+```
+
+### Example Request
+
+```bash
+curl -X POST https://api.algebras.ai/v1/translation \
+  -H "Authorization: Bearer your-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source_language": "en",
+    "target_languages": ["es", "fr"],
+    "text": "Hello, world!"
+  }'
+```
+
+### API Endpoints
+
+Access the full API documentation at `https://docs.algebras.ai/` for:
+- Available endpoints
+- Request/response formats
+- Rate limits
+- Error codes
+- Code examples
+
+## Managing API Keys
+
+### Viewing Keys
+
+The API Keys page shows:
+- Key label (descriptive name)
+- Created date
+- Created by (user who created the key)
+- Partial key view (masked for security)
+
+### Revoking Keys
+
+1. Go to **API Keys**.
+2. Find the key you want to revoke.
+3. Click the revoke/delete action.
+4. Confirm revocation.
+5. **Immediate effect**: The key stops working immediately - update your applications.
+
+### Rotating Keys
+
+For security, rotate keys periodically:
+
+1. Create a new API key with the same or updated label.
+2. Update your application(s) to use the new key.
+3. Test that everything works with the new key.
+4. Revoke the old key.
+
+This process ensures zero downtime during key rotation.
+
+## Key Management Best Practices
+
+### Organization and Labeling
+
+- Use descriptive labels that indicate the key's purpose.
+- Include environment in the label (prod, staging, dev).
+- Note which service or application uses each key.
+
+### Security
+
+1. **Never commit keys to version control**: Use environment variables or secrets managers.
+2. **Use secrets managers**: Store keys in tools like AWS Secrets Manager, HashiCorp Vault, or similar.
+3. **Limit key distribution**: Only share keys with authorized team members.
+4. **Monitor usage**: Watch for unexpected API usage that might indicate a compromised key.
+5. **Rotate regularly**: Change keys every 90 days or when team members leave.
+6. **One key per service**: Create separate keys for different applications to enable individual revocation.
+
+### Access Control
+
+- API keys inherit the permissions of the organization they belong to.
+- Keys created in an organization can only access that organization's resources.
+- Members with appropriate roles can create keys for their organization.
+
+## Troubleshooting
+
+### Key Not Working
+
+1. Verify the key is copied correctly (no extra spaces or characters).
+2. Check that the key hasn't been revoked.
+3. Ensure you're using `Bearer` authentication in the Authorization header.
+4. Verify the key belongs to the correct organization.
+
+### Rate Limiting
+
+- API keys are subject to rate limits based on your plan.
+- Check your plan's API rate limits in the documentation.
+- Contact support if you need higher limits.
+
+## Integration Examples
+
+### CLI Tool
+
+Configure your CLI tool with the API key from your account settings. The key is automatically available in the API Keys section.
+
+### Server Applications
+
+Store API keys as environment variables:
+
+```bash
+export ALGEBRAS_API_KEY=your-key-here
+```
+
+### CI/CD Pipelines
+
+Use your CI/CD platform's secrets management to inject API keys during builds and deployments.
+
+
