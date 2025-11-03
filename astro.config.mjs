@@ -10,6 +10,10 @@ export default defineConfig({
   build: {
     assets: 'app_assets',
   },
+  redirects: {
+    '/api/': '/api/translation/',
+    '/cli/': '/cli/installation/',
+  },
   integrations: [
     starlight({
       title: 'Algebras',
