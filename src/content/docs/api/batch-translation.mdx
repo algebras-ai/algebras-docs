@@ -4,7 +4,7 @@ description: API endpoints for text translation
 sidebar:
   order: 3
 ---
-import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
 ## Translate Batch
 
@@ -127,7 +127,8 @@ if (response.ok) {
 } else {
   const error = await response.json();
   console.error("Error:", response.status, error);
- ```
+}
+```
 </TabItem>
 <TabItem label="go">
 ```go
@@ -193,26 +194,26 @@ Start an asynchronous agentic translation task.
 
 ### Request Body
 
-```json
-{
-  "sourceLanguage": "en",
-  "targetLanguage": "de",
-  "text": "Hello, World!",
-  "options": {
-    "uiSafe": false,
-    "glossaryId": "glossary-123"
-  }
-}
-```
+Sent as JSON.
 
-Parameters:
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `sourceLanguage` | string | yes | Source language code (use `auto` for automatic detection) |
+| `targetLanguage` | string | yes | Target language code |
+| `textContent` | string | yes | Text to translate |
+| `glossaryId` | string | no | Glossary ID to apply during translation |
+| `prompt` | string | no | Custom prompt to guide translation |
+| `ignoreCache` | boolean | no | Ignore previously cached translation results |
 
-- `sourceLanguage`: Source language code
-- `targetLanguage`: Target language code
-- `text`: Text to translate
-- `options`: Optional configuration object
-  - `uiSafe`: Whether to ensure UI-safe translations (optional)
-  - `glossaryId`: Glossary ID to use for translation (optional)
+### Headers
+
+| Header | Required | Description |
+|---|---|---|
+| `X-Webhook-Url` | no | URL to receive a `POST` notification with the translation result once the task completes |
+
+<Aside type="caution" title="Pricing">
+  Agentic translation is charged at **4x** the rate of `/translate` and `/translate-batch`.
+</Aside>
 
 ### Response
 
@@ -223,11 +224,15 @@ Parameters:
   "status": "ok",
   "timestamp": "2025-01-12T22:31:48.856Z",
   "data": {
-    "id": "task-123456",
-    "status": "pending"
+    "translation_id": "cmabc123translation",
+    "status": "PENDING"
   }
 }
 ```
+
+<Aside type="note">
+  `status` is `READY` only when the request is an exact cache hit and the result is returned immediately; otherwise it's `PENDING` and you poll the status endpoint below with `translation_id`.
+</Aside>
 
 ### Example Request
 
@@ -240,11 +245,8 @@ curl -X POST "https://platform.algebras.ai/api/v1/translation/agentic-translate"
      -d '{
            "sourceLanguage": "en",
            "targetLanguage": "de",
-           "text": "Hello, World!",
-           "options": {
-             "uiSafe": false,
-             "glossaryId": "glossary-123"
-           }
+           "textContent": "Hello, World!",
+           "glossaryId": "glossary-123"
          }'
 ```
 </TabItem>
@@ -260,20 +262,17 @@ headers = {
 data = {
     "sourceLanguage": "en",
     "targetLanguage": "de",
-    "text": "Hello, World!",
-    "options": {
-        "uiSafe": False,
-        "glossaryId": "glossary-123"
-    }
+    "textContent": "Hello, World!",
+    "glossaryId": "glossary-123"
 }
 
 response = requests.post(url, headers=headers, json=data)
 
 if response.status_code == 200:
     result = response.json()
-    task_id = result["data"]["id"]
-    task_status = result["data"]["status"]
-    print(f"Task ID: {task_id}, Status: {task_status}")
+    translation_id = result["data"]["translation_id"]
+    status = result["data"]["status"]
+    print(f"Translation ID: {translation_id}, Status: {status}")
 else:
     print(f"Error: {response.status_code}")
     print(response.json())
@@ -292,17 +291,14 @@ const response = await fetch(url, {
   body: JSON.stringify({
     sourceLanguage: "en",
     targetLanguage: "de",
-    text: "Hello, World!",
-    options: {
-      uiSafe: false,
-      glossaryId: "glossary-123",
-    },
+    textContent: "Hello, World!",
+    glossaryId: "glossary-123",
   }),
 });
 
 if (response.ok) {
   const result = await response.json();
-  console.log("Task ID:", result.data.id);
+  console.log("Translation ID:", result.data.translation_id);
   console.log("Status:", result.data.status);
 } else {
   const error = await response.json();
@@ -324,37 +320,34 @@ import (
 
 func main() {
     url := "https://platform.algebras.ai/api/v1/translation/agentic-translate"
-    
+
     payload := map[string]interface{}{
         "sourceLanguage": "en",
         "targetLanguage": "de",
-        "text":           "Hello, World!",
-        "options": map[string]interface{}{
-            "uiSafe":     false,
-            "glossaryId": "glossary-123",
-        },
+        "textContent":    "Hello, World!",
+        "glossaryId":     "glossary-123",
     }
-    
+
     jsonData, _ := json.Marshal(payload)
-    
+
     req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
     req.Header.Set("X-Api-Key", "your_api_key_here")
     req.Header.Set("Content-Type", "application/json")
-    
+
     client := &http.Client{}
     resp, err := client.Do(req)
     if err != nil {
         panic(err)
     }
     defer resp.Body.Close()
-    
+
     body, _ := io.ReadAll(resp.Body)
-    
+
     if resp.StatusCode == 200 {
         var result map[string]interface{}
         json.Unmarshal(body, &result)
         data := result["data"].(map[string]interface{})
-        fmt.Printf("Task ID: %v, Status: %v\n", data["id"], data["status"])
+        fmt.Printf("Translation ID: %v, Status: %v\n", data["translation_id"], data["status"])
     } else {
         fmt.Printf("Error: %d\n", resp.StatusCode)
         fmt.Println(string(body))
@@ -366,13 +359,13 @@ func main() {
 
 ## Get Agentic Translation Task Status
 
-Get the status of an agentic translation task by ID.
+Get the status and result of an agentic translation task by ID.
 
 **Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/get_translation_agentic_translate__id_" target="_blank" rel="noopener noreferrer"><code>GET /translation/agentic-translate/\{id\}</code></a>
 
 ### Path Parameters
 
-- `id`: Task ID returned from the agentic-translate endpoint
+- `id`: The `translation_id` returned from the agentic-translate endpoint
 
 ### Response
 
@@ -383,20 +376,25 @@ Get the status of an agentic translation task by ID.
   "status": "ok",
   "timestamp": "2025-01-12T22:31:48.856Z",
   "data": {
-    "id": "task-123456",
-    "status": "completed",
+    "id": "cmabc123translation",
+    "status": "READY",
+    "createdAt": "2025-01-12T22:31:00.000Z",
+    "completedAt": "2025-01-12T22:31:48.856Z",
     "result": "Hallo, Welt!",
-    "progress": 100
+    "sourceLanguage": "en",
+    "targetLanguage": "de"
   }
 }
 ```
+
+`status` is one of `PENDING`, `READY`, or `ERROR`. `result` is present only when `status` is `READY`; `error` is present only when `status` is `ERROR`.
 
 ### Example Request
 
 <Tabs syncKey="lang">
 <TabItem label="bash">
 ```bash
-curl -X GET "https://platform.algebras.ai/api/v1/translation/agentic-translate/task-123456" \
+curl -X GET "https://platform.algebras.ai/api/v1/translation/agentic-translate/cmabc123translation" \
      -H "X-Api-Key: your_api_key_here"
 ```
 </TabItem>
@@ -404,8 +402,8 @@ curl -X GET "https://platform.algebras.ai/api/v1/translation/agentic-translate/t
 ```python
 import requests
 
-task_id = "task-123456"
-url = f"https://platform.algebras.ai/api/v1/translation/agentic-translate/{task_id}"
+translation_id = "cmabc123translation"
+url = f"https://platform.algebras.ai/api/v1/translation/agentic-translate/{translation_id}"
 headers = {
     "X-Api-Key": "your_api_key_here"
 }
@@ -414,11 +412,10 @@ response = requests.get(url, headers=headers)
 
 if response.status_code == 200:
     result = response.json()
-    task_data = result["data"]
-    print(f"Task ID: {task_data['id']}")
-    print(f"Status: {task_data['status']}")
-    if task_data.get("result"):
-        print(f"Result: {task_data['result']}")
+    data = result["data"]
+    print(f"Status: {data['status']}")
+    if data.get("result"):
+        print(f"Result: {data['result']}")
 else:
     print(f"Error: {response.status_code}")
     print(response.json())
@@ -426,8 +423,8 @@ else:
 </TabItem>
 <TabItem label="nodejs">
 ```javascript
-const taskId = "task-123456";
-const url = `https://platform.algebras.ai/api/v1/translation/agentic-translate/${taskId}`;
+const translationId = "cmabc123translation";
+const url = `https://platform.algebras.ai/api/v1/translation/agentic-translate/${translationId}`;
 
 const response = await fetch(url, {
   method: "GET",
@@ -438,7 +435,6 @@ const response = await fetch(url, {
 
 if (response.ok) {
   const result = await response.json();
-  console.log("Task ID:", result.data.id);
   console.log("Status:", result.data.status);
   if (result.data.result) {
     console.log("Result:", result.data.result);
@@ -461,26 +457,25 @@ import (
 )
 
 func main() {
-    taskID := "task-123456"
-    url := fmt.Sprintf("https://platform.algebras.ai/api/v1/translation/agentic-translate/%s", taskID)
-    
+    translationID := "cmabc123translation"
+    url := fmt.Sprintf("https://platform.algebras.ai/api/v1/translation/agentic-translate/%s", translationID)
+
     req, _ := http.NewRequest("GET", url, nil)
     req.Header.Set("X-Api-Key", "your_api_key_here")
-    
+
     client := &http.Client{}
     resp, err := client.Do(req)
     if err != nil {
         panic(err)
     }
     defer resp.Body.Close()
-    
+
     body, _ := io.ReadAll(resp.Body)
-    
+
     if resp.StatusCode == 200 {
         var result map[string]interface{}
         json.Unmarshal(body, &result)
         data := result["data"].(map[string]interface{})
-        fmt.Printf("Task ID: %v\n", data["id"])
         fmt.Printf("Status: %v\n", data["status"])
         if result, ok := data["result"].(string); ok {
             fmt.Printf("Result: %s\n", result)
