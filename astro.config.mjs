@@ -28,15 +28,15 @@ export default defineConfig({
         },
         {
           label: 'Algebras Platform',
-          autogenerate: { directory: 'app' },
+          items: [{ autogenerate: { directory: 'app' } }],
         },
         {
           label: 'Algebras API',
-          autogenerate: { directory: 'api' },
+          items: [{ autogenerate: { directory: 'api' } }],
         },
         {
           label: 'Algebras CLI',
-          autogenerate: { directory: 'cli' },
+          items: [{ autogenerate: { directory: 'cli' } }],
         },
       ],
     }),
