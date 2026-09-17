@@ -32,7 +32,7 @@ This guide covers common issues you might encounter when using the Algebras CLI 
 
 1. **Use --user flag:**
    ```bash
-   pip install --user algebras-cli
+   pip install --user git+https://github.com/algebras-ai/algebras-cli.git
    ```
 2. **Use virtual environment:**
    ```bash
@@ -320,11 +320,9 @@ Validate your setup:
 algebras status
 ```
 
-### Log Files
+### Log Output
 
-Check for log files in:
-- `~/.algebras/logs/`
-- Project directory logs
+The CLI does not write log files — all output goes to your terminal (stdout/stderr). Re-run the failing command with `--verbose` and capture the output if you need to share it (e.g. `algebras translate --verbose > algebras.log 2>&1`).
 
 ### Support Resources
 
@@ -359,7 +357,7 @@ When reporting issues, include:
 
 1. **Update CLI regularly:**
    ```bash
-   pip install --upgrade algebras-cli
+   pip install --upgrade git+https://github.com/algebras-ai/algebras-cli.git
    ```
 2. **Review translations** periodically
 3. **Update glossaries** as needed

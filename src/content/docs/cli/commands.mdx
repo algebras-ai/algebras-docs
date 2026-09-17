@@ -10,13 +10,17 @@ The Algebras CLI provides several commands to manage your localization workflow.
 | Command | Description |
 |---------|-------------|
 | `init` | Initialize or regenerate configuration |
-| `add` | Add languages to your project |
-| `remove` | Remove languages from your project |
+| `add` | Add a language to your project |
 | `translate` | Translate source files to target languages |
 | `update` | Update existing translations |
-| `status` | Show project status and configuration |
+| `ci` | CI-friendly check command for automated workflows |
+| `review` | Compare translated files against the source and flag issues |
+| `status` | Show project status and translation progress |
+| `healthcheck` | Validate translation quality (placeholders, formatting, tags) |
 | `configure` | Configure CLI settings |
-| `ci` | CI-friendly command for automated workflows |
+| `glossary push` | Upload glossary terms from a CSV/TSV/XLSX file |
+
+Every command accepts a global `-f`/`--config-file <path>` option (before the subcommand) to use a config file other than `.algebras.config`, e.g. `algebras -f .algebras-fr.config translate`.
 
 ## init
 
@@ -30,7 +34,9 @@ algebras init [options]
 
 ### Options
 
-- `--force` - Force regeneration of configuration file
+- `--force` - Force initialization even if a config file already exists
+- `--verbose` - Show detailed information about locale detection
+- `--provider <provider>` - Set the default provider (currently only `algebras-ai` is supported)
 
 ### Examples
 
@@ -40,36 +46,41 @@ algebras init
 
 # Regenerate existing configuration
 algebras init --force
+
+# Initialize with verbose detection output
+algebras init --verbose
 ```
 
 ### What it does
 
-- Creates `.algebras.config` file
-- Detects source files in your project
-- Sets up default configuration
-- Prompts for language selection
+- Auto-detects locale files in your project (common `src/locales`, `i18n`, `public/locales`, `messages`, etc. patterns) and infers languages from filenames/directories
+- Creates a `.algebras.config` file with the detected languages and source file mappings
+- Defaults to `algebras-ai` as the provider
+- Warns if `ALGEBRAS_API_KEY` is not set
+
+Language selection is automatic, not interactive — `init` does not prompt you to pick languages. Use `algebras add` afterward to add more.
 
 ## add
 
-Add languages to your project configuration.
+Add a single language to your project configuration.
 
 ### Usage
 
 ```bash
-algebras add <language1> [language2] [language3] ...
+algebras add <language>
 ```
+
+`add` takes exactly one language code per invocation — to add several languages, run it multiple times.
 
 ### Examples
 
 ```bash
-# Add single language
+# Add a language
 algebras add es
 
-# Add multiple languages
-algebras add es fr de
-
-# Add language with region
-algebras add pt_BR zh_CN
+# Add several languages
+algebras add fr
+algebras add de
 ```
 
 ### Supported Language Codes
@@ -85,25 +96,7 @@ Common language codes include:
 - `ru` - Russian
 - `ar` - Arabic
 
-## remove
-
-Remove languages from your project configuration.
-
-### Usage
-
-```bash
-algebras remove <language1> [language2] [language3] ...
-```
-
-### Examples
-
-```bash
-# Remove single language
-algebras remove es
-
-# Remove multiple languages
-algebras remove es fr
-```
+There is currently no `algebras remove` command — remove a language by deleting its entry from the `languages` list in `.algebras.config`.
 
 ## translate
 
@@ -117,13 +110,18 @@ algebras translate [options]
 
 ### Options
 
-- `--only-missing` - Only translate missing keys
-- `--ui-safe` - Ensure translations don't exceed original text length
-- `--batch-size <number>` - Number of translations per batch (default: 20)
-- `--max-parallel-batches <number>` - Maximum parallel batches (default: 5)
-- `--glossary-id <id>` - Use specific glossary for translation
-- `--prompt-file <file>` - Use custom prompt from file
-- `--prompt <text>` - Use custom prompt text
+- `--language, -l <code>` - Translate only the specified language
+- `--force[=<keys>]` - Force translation even if files are up to date. Pass it bare to force everything, or with a comma-separated key list (e.g. `--force "key1,key2"`) to force only those keys
+- `--only-missing` - Only translate keys that are missing in the target files
+- `--ui-safe` - Ensure translations don't exceed the original text length
+- `--verbose` - Show detailed logs of the translation process
+- `--batch-size <number>` - Override the batch size for this run (default: 20)
+- `--max-parallel-batches <number>` - Override the maximum number of parallel batches (default: 5)
+- `--glossary-id <id>` - Use a specific glossary for translation
+- `--prompt-file <file>` - Use a custom prompt loaded from a file
+- `--regenerate-from-scratch` - Regenerate target files from scratch instead of updating them in place
+- `--sync-batch` - Use the legacy synchronous batch translation endpoint instead of the default async submit+poll endpoint
+- `--no-cache` - Bypass cached translations (API-side and local cache) and force fresh results
 
 ### Examples
 
@@ -131,20 +129,26 @@ algebras translate [options]
 # Basic translation
 algebras translate
 
+# Only one language
+algebras translate --language fr
+
 # UI-safe translation
 algebras translate --ui-safe
 
 # Use custom batch size
 algebras translate --batch-size 10
 
-# Use glossary
+# Use a glossary
 algebras translate --glossary-id glossary-123
 
-# Custom prompt
-algebras translate --prompt "Translate to {target_language} maintaining a professional tone"
+# Custom prompt from a file
+algebras translate --prompt-file custom-prompt.txt
 
-# Only missing translations
-algebras translate --only-missing
+# Force re-translation of specific keys only
+algebras translate --force "common.title,common.subtitle"
+
+# Bypass the translation cache
+algebras translate --no-cache
 ```
 
 ## update
@@ -159,58 +163,120 @@ algebras update [options]
 
 ### Options
 
-Same as `translate` command.
+- `--language, -l <code>` - Update only the specified language
+- `--full` - Translate the entire file, not just missing/outdated keys
+- `--only-missing` - Only translate keys that are missing, and skip git-based outdated-key validation
+- `--ui-safe` - Ensure translations don't exceed the original text length
+- `--verbose` - Show detailed logs of the update process
+
+If neither `--full` nor `--only-missing` is passed, `update` defaults to updating missing and outdated keys (using git to detect changed source lines). `update` does not accept `translate`'s batch-processing, glossary, or prompt options.
 
 ### Examples
 
 ```bash
-# Update all translations
+# Update missing/outdated translations
 algebras update
+
+# Full re-translation of every key
+algebras update --full
+
+# Update only missing keys, skip git validation
+algebras update --only-missing
 
 # UI-safe update
 algebras update --ui-safe
-
-# Update with custom settings
-algebras update --batch-size 15 --max-parallel-batches 2
 ```
 
-## status
+## ci
 
-Show project status and configuration information.
+CI-friendly command that checks translation completeness without translating. It always uses git-based validation unless `--only-missing` is passed, and exits non-zero if issues are found — no separate `--fail-on-error` flag is needed.
 
 ### Usage
 
 ```bash
-algebras status
+algebras ci [options]
 ```
+
+### Options
+
+- `--language, -l <code>` - Check only the specified language
+- `--verbose` - Show detailed logs of the check process
+- `--only-missing` - Only check for missing keys; skip git validation for outdated keys
+
+### Examples
+
+```bash
+# Fail the build if translations are missing or outdated
+algebras ci
+
+# Only check for missing keys
+algebras ci --only-missing
+```
+
+## review
+
+Compare each target language's files against the source language and flag missing keys, extra keys, type mismatches, and suspiciously short/long translations (a simple length-ratio heuristic).
+
+### Usage
+
+```bash
+algebras review [options]
+```
+
+### Options
+
+- `--language, -l <code>` - Review only the specified language. If omitted and more than one target language is configured, you'll be prompted to pick one.
+
+### Examples
+
+```bash
+algebras review --language fr
+```
+
+## status
+
+Show translation progress and configuration information.
+
+### Usage
+
+```bash
+algebras status [options]
+```
+
+### Options
+
+- `--language, -l <code>` - Show status only for the specified language
 
 ### Output
 
-Shows:
-- Configured languages
-- Source files detected
-- API configuration
-- Recent translation history
-- Configuration validation status
+For each configured target language, `status` prints the number of translated keys vs. expected keys (with percentage), any outdated keys, and the file completion count. It also validates your configured language codes against the API (when `ALGEBRAS_API_KEY` is set) and warns about codes the API doesn't recognize.
 
-### Example Output
+## healthcheck
 
+Validate translation quality — checks for placeholder/variable mismatches, unbalanced HTML/XML tags, formatting differences, and other structural issues between source and target strings. Exits with a non-zero status if errors are found, making it usable in CI alongside `ci`.
+
+### Usage
+
+```bash
+algebras healthcheck [options]
 ```
-Algebras CLI Status
-==================
 
-Languages: en, es, fr, de
-Source Files: 3 files detected
-API Provider: algebras-ai
-Model: gpt-4
+### Options
 
-Configuration: ✓ Valid
-Last Translation: 2025-01-12 14:30:00
+- `--language, -l <code>` - Check only the specified language
+- `--format <console|json>` - Output format (default: `console`)
+- `--verbose` - Show detailed information
+
+### Examples
+
+```bash
+algebras healthcheck
+algebras healthcheck --language de --format json
 ```
 
 ## configure
 
-Configure CLI settings and defaults.
+View or change CLI settings stored in `.algebras.config`. Run with no options to print the current configuration.
 
 ### Usage
 
@@ -220,14 +286,21 @@ algebras configure [options]
 
 ### Options
 
-- `--batch-size <number>` - Set default batch size
-- `--max-parallel-batches <number>` - Set default max parallel batches
-- `--prompt <text>` - Set default prompt
-- `--normalize-strings <true|false>` - Enable/disable string normalization
+- `--provider <provider>` - Set the API provider (currently only `algebras-ai`)
+- `--model <model>` - Set the model for the provider (stored in config; not used by the `algebras-ai` provider today)
+- `--path-rules <rules>` - Set legacy path rules (comma-separated patterns)
+- `--batch-size <number>` - Set the default batch size for translation processing
+- `--max-parallel-batches <number>` - Set the default maximum number of parallel batches
+- `--glossary-id <id>` - Set the default glossary ID for translations
+- `--prompt <text>` - Set a default prompt for translations
+- `--normalize-strings <true|false>` - Enable/disable string normalization (removes escaped characters like `\'`)
 
 ### Examples
 
 ```bash
+# Show current configuration
+algebras configure
+
 # Set batch size
 algebras configure --batch-size 15
 
@@ -241,62 +314,53 @@ algebras configure --prompt "Translate to {target_language} maintaining a profes
 algebras configure --normalize-strings true
 ```
 
-## ci
+## glossary push
 
-CI-friendly command for automated workflows.
+Upload glossary terms from a CSV, TSV, or XLSX file, creating a new glossary in the process.
 
 ### Usage
 
 ```bash
-algebras ci [options]
+algebras glossary push <file> --name <name> [options]
 ```
 
 ### Options
 
-Same as `translate` command, plus:
-- `--fail-on-error` - Exit with error code on translation failures
-- `--quiet` - Suppress non-essential output
+- `--name <name>` - Name of the glossary to create (required)
+- `--batch-size <number>` - Number of terms to upload per request (default: 100)
+- `--debug` - Log all requests before sending
+- `--rows-ids <ids>` - Comma-separated list of row numbers or record IDs to include (upload a subset)
+- `--max-length <number>` - Maximum allowed term length; longer terms are skipped (default: 255)
 
 ### Examples
 
 ```bash
-# CI translation with error handling
-algebras ci --fail-on-error --quiet
+# Upload a full glossary
+algebras glossary push terms.csv --name "Product Glossary"
 
-# CI update with custom settings
-algebras ci --only-missing --ui-safe --fail-on-error
-```
+# Upload only specific rows
+algebras glossary push terms.xlsx --name "Product Glossary" --rows-ids "1,2,5"
 
-## Global Options
-
-All commands support these global options:
-
-- `--help` - Show help message
-- `--version` - Show version information
-- `--verbose` - Enable verbose output
-- `--config <file>` - Use custom config file
-
-### Examples
-
-```bash
-# Show help for translate command
-algebras translate --help
-
-# Use custom config file
-algebras translate --config custom-config.yaml
-
-# Verbose output
-algebras translate --verbose
+# Use the resulting glossary in translation
+algebras translate --glossary-id <glossary-id-from-output>
 ```
 
 ## Environment Variables
 
 The CLI respects these environment variables:
 
-- `ALGEBRAS_API_KEY` - Your API key (required)
-- `ALGEBRAS_BASE_URL` - Custom API base URL
-- `ALGEBRAS_BATCH_SIZE` - Default batch size
-- `ALGEBRAS_MAX_PARALLEL_BATCHES` - Default max parallel batches
+- `ALGEBRAS_API_KEY` - Your API key (required for translation)
+- `ALGEBRAS_BASE_URL` - Custom API base URL (default: `https://platform.algebras.ai`)
+- `ALGEBRAS_BATCH_SIZE` - Default batch size, used when not set in config or via `--batch-size`
+- `ALGEBRAS_MAX_PARALLEL_BATCHES` - Default max parallel batches, used when not set in config or via `--max-parallel-batches`
+
+## Global Options
+
+- `algebras --version` - Show CLI version
+- `algebras <command> --help` - Show help for any command
+- `algebras -f <path> <command>` - Use a custom config file instead of `.algebras.config`
+
+Note that `--verbose` is defined per-command (available on `init`, `translate`, `update`, `ci`, and `healthcheck`), not as a single global flag.
 
 ## Command Workflow Examples
 
@@ -307,7 +371,8 @@ The CLI respects these environment variables:
 algebras init
 
 # 2. Add languages
-algebras add es fr de
+algebras add es
+algebras add fr
 
 # 3. Translate files
 algebras translate
@@ -333,7 +398,7 @@ algebras update --only-missing
 
 ```bash
 # In your CI pipeline
-algebras ci --only-missing --fail-on-error --quiet
+algebras ci --only-missing
 ```
 
 ## Troubleshooting Commands
@@ -341,6 +406,7 @@ algebras ci --only-missing --fail-on-error --quiet
 ### Check Configuration
 
 ```bash
+algebras configure
 algebras status
 ```
 
