@@ -117,7 +117,7 @@ algebras translate [options]
 - `--only-missing` - Only translate keys that are missing in the target files
 - `--ui-safe` - Ensure translations don't exceed the original text length
 - `--verbose` - Show detailed logs of the translation process
-- `--batch-size <number>` - Override the batch size for this run (default: 20)
+- `--batch-size <number>` - Override the batch size for this run (falls back to 20 only if unset in config and in `ALGEBRAS_BATCH_SIZE`; note that `algebras init` writes `batch_size: 5` into every new config, so a freshly initialized project effectively defaults to 5, not 20)
 - `--max-parallel-batches <number>` - Override the maximum number of parallel batches (default: 5)
 - `--glossary-id <id>` - Use a specific glossary for translation
 - `--prompt-file <file>` - Use a custom prompt loaded from a file
@@ -235,6 +235,10 @@ algebras review [options]
 algebras review --language fr
 ```
 
+:::caution
+`review` matches source and target files by filename pattern, not by your `source_files` destination mapping. It reliably matches files that encode the language in a shared directory's filename (e.g. `common.en.json` / `common.fr.json`), but currently fails to pair files that share an identical filename across per-language subdirectories (e.g. `src/locales/en/common.json` / `src/locales/fr/common.json`) — the layout used in most of the framework examples in these docs. If `review` reports "No matching file pairs found" for a config that `status` and `healthcheck` handle fine, this is why.
+:::
+
 ## status
 
 Show translation progress and configuration information.
@@ -319,6 +323,21 @@ algebras configure --normalize-strings true
 ## glossary push
 
 Upload glossary terms from a CSV, TSV, or XLSX file, creating a new glossary in the process.
+
+### File Format
+
+The file's first column must be a **Record ID** (a unique identifier for the term), followed by one column per language, using the language code as the header. Each row is a term, with its translation in each language column:
+
+```csv
+Record ID,en,fr,de
+1,Submit,Envoyer,Absenden
+2,Cancel,Annuler,Abbrechen
+```
+
+- Empty cells are skipped (not uploaded as blank terms)
+- Rows with a missing Record ID, or with a different column count than the header, are skipped with a warning
+- Terms longer than 1000 characters are truncated automatically; `--max-length` applies a stricter, configurable limit on top of that (default: 255)
+- TSV files use the same layout with tabs instead of commas
 
 ### Usage
 
