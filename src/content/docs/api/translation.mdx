@@ -2,29 +2,33 @@
 title: Translation
 description: API endpoints for text translation
 ---
-import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
 ## Translate Text
 
 Translate text between supported languages.
 
-**Endpoint:** `POST /translation/translate`
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/post_translation_translate" target="_blank" rel="noopener noreferrer"><code>POST /translation/translate</code></a>
 
 ### Request Body
 
-```json
-{
-  "sourceLanguage": "auto",
-  "targetLanguage": "de",
-  "text": "Hello, World!"
-}
-```
+Sent as `multipart/form-data`.
 
-Parameters:
+| Field            | Type      | Required                                | Description                                                                          |
+| ---------------- | --------- | ---------------------------------------- | ------------------------------------------------------------------------------------- |
+| `sourceLanguage` | string    | yes                                      | Source language code (use `auto` for automatic detection)                             |
+| `targetLanguage` | string    | yes                                      | Target language code                                                                   |
+| `textContent`    | string    | one of `textContent` / `fileContent`     | Text to translate                                                                      |
+| `fileContent`    | file(s)   | one of `textContent` / `fileContent`     | CSV file(s) to translate instead of raw text                                          |
+| `glossaryId`     | string    | no                                       | Glossary ID to apply during translation                                               |
+| `prompt`         | string    | no                                       | Custom prompt to guide translation                                                    |
+| `flag`           | boolean   | no                                       | Preserve source length when translating                                               |
+| `ignoreCache`    | boolean   | no                                       | Ignore previously cached translation results                                          |
+| `fluency`        | boolean   | no                                       | Also return a fluency evaluation for the translation (text-only, skipped for long text) |
 
-- `sourceLanguage`: Source language code (use "auto" for automatic detection)
-- `targetLanguage`: Target language code
-- `text`: Text to translate (single string input)
+<Aside type="note">
+  If `fileContent` is used instead of `textContent`, the response is returned as an `application/zip` file (translated CSVs) rather than JSON.
+</Aside>
 
 ### Response
 
@@ -35,6 +39,29 @@ Parameters:
   "status": "ok",
   "timestamp": "2025-01-12T22:31:48.856Z",
   "data": "Hallo, Welt!"
+}
+```
+
+**Success Response (200) — with `fluency: true`**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": "Hallo, Welt!",
+  "fluency": {
+    "value": 9.2,
+    "idiomatic": 9,
+    "collocational": 9,
+    "discourse": 9,
+    "pragmatic": 10,
+    "calque": 9,
+    "issue_type": "none",
+    "severity": null,
+    "problematic_phrase": null,
+    "suggested_fix": null,
+    "main_issue": null
+  }
 }
 ```
 
@@ -57,12 +84,9 @@ Parameters:
 ```bash
 curl -X POST "https://platform.algebras.ai/api/v1/translation/translate" \
      -H "X-Api-Key: your_api_key_here" \
-     -H "Content-Type: application/json" \
-     -d '{
-           "sourceLanguage": "auto",
-           "targetLanguage": "de",
-           "text": "Hello, World!"
-         }'
+     -F "sourceLanguage=auto" \
+     -F "targetLanguage=de" \
+     -F "textContent=Hello, World!"
 ```
 </TabItem>
 <TabItem label="python">
@@ -71,16 +95,17 @@ import requests
 
 url = "https://platform.algebras.ai/api/v1/translation/translate"
 headers = {
-    "X-Api-Key": "your_api_key_here",
-    "Content-Type": "application/json"
+    "X-Api-Key": "your_api_key_here"
 }
-data = {
-    "sourceLanguage": "auto",
-    "targetLanguage": "de",
-    "text": "Hello, World!"
+# Use the `files=` param with (None, value) tuples to force a real
+# multipart/form-data body even though there's no file being uploaded.
+form_data = {
+    "sourceLanguage": (None, "auto"),
+    "targetLanguage": (None, "de"),
+    "textContent": (None, "Hello, World!"),
 }
 
-response = requests.post(url, headers=headers, json=data)
+response = requests.post(url, headers=headers, files=form_data)
 
 if response.status_code == 200:
     result = response.json()
@@ -95,17 +120,19 @@ else:
 ```javascript
 const url = "https://platform.algebras.ai/api/v1/translation/translate";
 
+const formData = new FormData();
+formData.append("sourceLanguage", "auto");
+formData.append("targetLanguage", "de");
+formData.append("textContent", "Hello, World!");
+
 const response = await fetch(url, {
   method: "POST",
   headers: {
     "X-Api-Key": "your_api_key_here",
-    "Content-Type": "application/json",
+    // Don't set Content-Type manually — fetch adds the multipart
+    // boundary for you when the body is a FormData instance.
   },
-  body: JSON.stringify({
-    sourceLanguage: "auto",
-    targetLanguage: "de",
-    text: "Hello, World!",
-  }),
+  body: formData,
 });
 
 if (response.ok) {
@@ -126,40 +153,40 @@ import (
     "encoding/json"
     "fmt"
     "io"
+    "mime/multipart"
     "net/http"
 )
 
 func main() {
     url := "https://platform.algebras.ai/api/v1/translation/translate"
-    
-    payload := map[string]string{
-        "sourceLanguage": "auto",
-        "targetLanguage": "de",
-        "text":           "Hello, World!",
-    }
-    
-    jsonData, _ := json.Marshal(payload)
-    
-    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+
+    body := &bytes.Buffer{}
+    writer := multipart.NewWriter(body)
+    writer.WriteField("sourceLanguage", "auto")
+    writer.WriteField("targetLanguage", "de")
+    writer.WriteField("textContent", "Hello, World!")
+    writer.Close()
+
+    req, _ := http.NewRequest("POST", url, body)
     req.Header.Set("X-Api-Key", "your_api_key_here")
-    req.Header.Set("Content-Type", "application/json")
-    
+    req.Header.Set("Content-Type", writer.FormDataContentType())
+
     client := &http.Client{}
     resp, err := client.Do(req)
     if err != nil {
         panic(err)
     }
     defer resp.Body.Close()
-    
-    body, _ := io.ReadAll(resp.Body)
-    
+
+    respBody, _ := io.ReadAll(resp.Body)
+
     if resp.StatusCode == 200 {
         var result map[string]interface{}
-        json.Unmarshal(body, &result)
+        json.Unmarshal(respBody, &result)
         fmt.Println("Translated text:", result["data"])
     } else {
         fmt.Printf("Error: %d\n", resp.StatusCode)
-        fmt.Println(string(body))
+        fmt.Println(string(respBody))
     }
 }
 ```
@@ -170,7 +197,7 @@ func main() {
 
 Translate multiple texts in a single batch request.
 
-**Endpoint:** `POST /translation/translate-batch`
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/post_translation_translate_batch" target="_blank" rel="noopener noreferrer"><code>POST /translation/translate-batch</code></a>
 
 ### Request Body
 
@@ -349,7 +376,7 @@ func main() {
 
 Start an asynchronous agentic translation task.
 
-**Endpoint:** `POST /translation/agentic-translate`
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/post_translation_agentic_translate" target="_blank" rel="noopener noreferrer"><code>POST /translation/agentic-translate</code></a>
 
 ### Request Body
 
@@ -528,7 +555,7 @@ func main() {
 
 Get the status of an agentic translation task by ID.
 
-**Endpoint:** `GET /translation/agentic-translate/{id}`
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/get_translation_agentic_translate__id_" target="_blank" rel="noopener noreferrer"><code>GET /translation/agentic-translate/\{id\}</code></a>
 
 ### Path Parameters
 

@@ -86,12 +86,9 @@ export ALGEBRAS_API_KEY=your_api_key_here
 ```bash
 curl -X POST "https://platform.algebras.ai/api/v1/translation/translate" \
      -H "X-Api-Key: $ALGEBRAS_API_KEY" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "sourceLanguage": "auto",
-       "targetLanguage": "es",
-       "text": "Hello, world!"
-     }'
+     -F "sourceLanguage=auto" \
+     -F "targetLanguage=es" \
+     -F "textContent=Hello, world!"
 ```
 
 **Response:**
