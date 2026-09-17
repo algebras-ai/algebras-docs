@@ -181,7 +181,7 @@
 <li><code dir="auto">--only-missing</code> - Only translate keys that are missing in the target files</li>
 <li><code dir="auto">--ui-safe</code> - Ensure translations don’t exceed the original text length</li>
 <li><code dir="auto">--verbose</code> - Show detailed logs of the translation process</li>
-<li><code dir="auto">--batch-size &lt;number&gt;</code> - Override the batch size for this run (falls back to 20 only if unset in config and in <code dir="auto">ALGEBRAS_BATCH_SIZE</code>; note that <code dir="auto">algebras init</code> writes <code dir="auto">batch_size: 5</code> into every new config, so a freshly initialized project effectively defaults to 5, not 20)</li>
+<li><code dir="auto">--batch-size &lt;number&gt;</code> - Override the batch size for this run. Without this flag, the value comes from <code dir="auto">batch_size</code> in <code dir="auto">.algebras.config</code> (5 in a project created by <code dir="auto">algebras init</code>), falling back to <code dir="auto">ALGEBRAS_BATCH_SIZE</code>, then a hardcoded 20</li>
 <li><code dir="auto">--max-parallel-batches &lt;number&gt;</code> - Override the maximum number of parallel batches (default: 5)</li>
 <li><code dir="auto">--glossary-id &lt;id&gt;</code> - Use a specific glossary for translation</li>
 <li><code dir="auto">--prompt-file &lt;file&gt;</code> - Use a custom prompt loaded from a file</li>

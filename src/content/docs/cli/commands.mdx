@@ -117,7 +117,7 @@ algebras translate [options]
 - `--only-missing` - Only translate keys that are missing in the target files
 - `--ui-safe` - Ensure translations don't exceed the original text length
 - `--verbose` - Show detailed logs of the translation process
-- `--batch-size <number>` - Override the batch size for this run (falls back to 20 only if unset in config and in `ALGEBRAS_BATCH_SIZE`; note that `algebras init` writes `batch_size: 5` into every new config, so a freshly initialized project effectively defaults to 5, not 20)
+- `--batch-size <number>` - Override the batch size for this run. Without this flag, the value comes from `batch_size` in `.algebras.config` (5 in a project created by `algebras init`), falling back to `ALGEBRAS_BATCH_SIZE`, then a hardcoded 20
 - `--max-parallel-batches <number>` - Override the maximum number of parallel batches (default: 5)
 - `--glossary-id <id>` - Use a specific glossary for translation
 - `--prompt-file <file>` - Use a custom prompt loaded from a file
