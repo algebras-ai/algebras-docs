@@ -1,0 +1,539 @@
+---
+title: Metrics
+description: API endpoints for scoring translation quality and fluency
+sidebar:
+  order: 1
+---
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+Evaluate an existing source/translation pair independently of the translation endpoints — useful for QA pipelines or scoring translations produced outside Algebras.
+
+## Evaluate Fluency
+
+Evaluates the fluency of a translation across five linguistic dimensions and provides improvement feedback.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/post_translation_fluency" target="_blank" rel="noopener noreferrer"><code>POST /translation/fluency</code></a>
+
+### Request Body
+
+Sent as JSON.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `sourceLang` | string | yes | Source language code |
+| `targetLang` | string | yes | Target language code |
+| `sourceText` | string | yes | The original text in the source language |
+| `translatedText` | string | yes | The translated text to evaluate |
+
+<Aside type="note">
+  Billed as a flat 10 words per call, regardless of text length.
+</Aside>
+
+### Response
+
+**Success Response (200)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "fluency": 6.4,
+    "idiomatic": 7,
+    "collocational": 6,
+    "discourse": 7,
+    "pragmatic": 6,
+    "calque": 6,
+    "issue_type": "collocation",
+    "severity": "minor",
+    "problematic_phrase": "macht Sinn",
+    "suggested_fix": "ergibt Sinn",
+    "main_issue": "The phrase is a calque from English and unnatural in German."
+  }
+}
+```
+
+`fluency` is the mean of the five dimensions (`idiomatic`, `collocational`, `discourse`, `pragmatic`, `calque`), each scored 1-10. `issue_type` is one of `calque`, `collocation`, `idiom_literal`, `discourse_marker`, `register_mismatch`, `false_friend`, or `none`. `severity` is one of `critical`, `major`, `minor`, or `cosmetic`.
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/fluency" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "sourceLang": "en",
+           "targetLang": "de",
+           "sourceText": "That makes sense.",
+           "translatedText": "Das macht Sinn."
+         }'
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+url = "https://platform.algebras.ai/api/v1/translation/fluency"
+headers = {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+data = {
+    "sourceLang": "en",
+    "targetLang": "de",
+    "sourceText": "That makes sense.",
+    "translatedText": "Das macht Sinn."
+}
+
+response = requests.post(url, headers=headers, json=data)
+
+if response.status_code == 200:
+    result = response.json()["data"]
+    print(f"Fluency: {result['fluency']}, issue: {result['issue_type']}")
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const url = "https://platform.algebras.ai/api/v1/translation/fluency";
+
+const response = await fetch(url, {
+  method: "POST",
+  headers: {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    sourceLang: "en",
+    targetLang: "de",
+    sourceText: "That makes sense.",
+    translatedText: "Das macht Sinn.",
+  }),
+});
+
+if (response.ok) {
+  const result = await response.json();
+  console.log("Fluency:", result.data.fluency, "issue:", result.data.issue_type);
+} else {
+  const error = await response.json();
+  console.error("Error:", response.status, error);
+}
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    url := "https://platform.algebras.ai/api/v1/translation/fluency"
+
+    payload := map[string]interface{}{
+        "sourceLang":     "en",
+        "targetLang":     "de",
+        "sourceText":     "That makes sense.",
+        "translatedText": "Das macht Sinn.",
+    }
+
+    jsonData, _ := json.Marshal(payload)
+
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+
+    if resp.StatusCode == 200 {
+        var result map[string]interface{}
+        json.Unmarshal(body, &result)
+        data := result["data"].(map[string]interface{})
+        fmt.Println("Fluency:", data["fluency"], "issue:", data["issue_type"])
+    } else {
+        fmt.Printf("Error: %d\n", resp.StatusCode)
+        fmt.Println(string(body))
+    }
+}
+```
+</TabItem>
+</Tabs>
+
+## Evaluate Fluency (Batch)
+
+Evaluates the fluency of up to 20 source/translation pairs concurrently. Individual item failures do not abort the whole batch.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/post_translation_fluency_batch" target="_blank" rel="noopener noreferrer"><code>POST /translation/fluency-batch</code></a>
+
+### Request Body
+
+Sent as JSON.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `sourceLang` | string | yes | Source language code |
+| `targetLang` | string | yes | Target language code |
+| `items` | array of objects | yes | Pairs to evaluate (max 20) |
+| `items[].sourceText` | string | yes | The original text in the source language |
+| `items[].translatedText` | string | yes | The translated text to evaluate |
+
+<Aside type="note">
+  Billed as a flat 10 words per item in the batch.
+</Aside>
+
+### Response
+
+**Success Response (200)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "evaluations": [
+      {
+        "index": 0,
+        "fluency": 9.2,
+        "idiomatic": 9,
+        "collocational": 9,
+        "discourse": 9,
+        "pragmatic": 10,
+        "calque": 9,
+        "issue_type": "none",
+        "severity": null,
+        "problematic_phrase": null,
+        "suggested_fix": null,
+        "main_issue": null
+      },
+      {
+        "index": 1,
+        "fluency": 6.4,
+        "idiomatic": 7,
+        "collocational": 6,
+        "discourse": 7,
+        "pragmatic": 6,
+        "calque": 6,
+        "issue_type": "collocation",
+        "severity": "minor",
+        "problematic_phrase": "macht Sinn",
+        "suggested_fix": "ergibt Sinn",
+        "main_issue": "The phrase is a calque from English and unnatural in German."
+      }
+    ],
+    "batch_summary": {
+      "total": 2,
+      "successful": 2,
+      "failed": 0
+    }
+  }
+}
+```
+
+<Aside type="note">
+  A failed item carries `error` and `status_code` instead of the score fields, with `fluency` and the rest left `null`.
+</Aside>
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/fluency-batch" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "sourceLang": "en",
+           "targetLang": "de",
+           "items": [
+             { "sourceText": "Hello, World!", "translatedText": "Hallo, Welt!" },
+             { "sourceText": "That makes sense.", "translatedText": "Das macht Sinn." }
+           ]
+         }'
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+url = "https://platform.algebras.ai/api/v1/translation/fluency-batch"
+headers = {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+data = {
+    "sourceLang": "en",
+    "targetLang": "de",
+    "items": [
+        {"sourceText": "Hello, World!", "translatedText": "Hallo, Welt!"},
+        {"sourceText": "That makes sense.", "translatedText": "Das macht Sinn."}
+    ]
+}
+
+response = requests.post(url, headers=headers, json=data)
+
+if response.status_code == 200:
+    for evaluation in response.json()["data"]["evaluations"]:
+        print(evaluation["index"], evaluation["fluency"])
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const url = "https://platform.algebras.ai/api/v1/translation/fluency-batch";
+
+const response = await fetch(url, {
+  method: "POST",
+  headers: {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    sourceLang: "en",
+    targetLang: "de",
+    items: [
+      { sourceText: "Hello, World!", translatedText: "Hallo, Welt!" },
+      { sourceText: "That makes sense.", translatedText: "Das macht Sinn." },
+    ],
+  }),
+});
+
+if (response.ok) {
+  const result = await response.json();
+  result.data.evaluations.forEach((e) => console.log(e.index, e.fluency));
+} else {
+  const error = await response.json();
+  console.error("Error:", response.status, error);
+}
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    url := "https://platform.algebras.ai/api/v1/translation/fluency-batch"
+
+    payload := map[string]interface{}{
+        "sourceLang": "en",
+        "targetLang": "de",
+        "items": []map[string]string{
+            {"sourceText": "Hello, World!", "translatedText": "Hallo, Welt!"},
+            {"sourceText": "That makes sense.", "translatedText": "Das macht Sinn."},
+        },
+    }
+
+    jsonData, _ := json.Marshal(payload)
+
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+
+    if resp.StatusCode == 200 {
+        var result map[string]interface{}
+        json.Unmarshal(body, &result)
+        data := result["data"].(map[string]interface{})
+        evaluations := data["evaluations"].([]interface{})
+        for _, e := range evaluations {
+            item := e.(map[string]interface{})
+            fmt.Println(item["index"], item["fluency"])
+        }
+    } else {
+        fmt.Printf("Error: %d\n", resp.StatusCode)
+        fmt.Println(string(body))
+    }
+}
+```
+</TabItem>
+</Tabs>
+
+## Evaluate GEMBA Quality Score
+
+Scores a translation on a continuous 0-100 Scalar Quality Metric (SQM/GEMBA-DA) scale, optionally informed by a human reference translation.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/post_translation_gemba" target="_blank" rel="noopener noreferrer"><code>POST /translation/gemba</code></a>
+
+### Request Body
+
+Sent as JSON.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `sourceLang` | string | yes | Source language code |
+| `targetLang` | string | yes | Target language code |
+| `sourceText` | string | yes | The original text in the source language |
+| `translatedText` | string | yes | The translated text to evaluate |
+| `referenceText` | string | no | Human reference translation used to calibrate the score |
+
+<Aside type="note">
+  Billed as a flat 10 words per call, regardless of text length.
+</Aside>
+
+### Response
+
+**Success Response (200)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "score": 87.5
+  }
+}
+```
+
+`score` ranges from 0 (no meaning preserved) to 100 (perfect meaning and grammar).
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/gemba" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "sourceLang": "en",
+           "targetLang": "de",
+           "sourceText": "Hello, World!",
+           "translatedText": "Hallo, Welt!"
+         }'
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+url = "https://platform.algebras.ai/api/v1/translation/gemba"
+headers = {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+data = {
+    "sourceLang": "en",
+    "targetLang": "de",
+    "sourceText": "Hello, World!",
+    "translatedText": "Hallo, Welt!"
+}
+
+response = requests.post(url, headers=headers, json=data)
+
+if response.status_code == 200:
+    print("Score:", response.json()["data"]["score"])
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const url = "https://platform.algebras.ai/api/v1/translation/gemba";
+
+const response = await fetch(url, {
+  method: "POST",
+  headers: {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    sourceLang: "en",
+    targetLang: "de",
+    sourceText: "Hello, World!",
+    translatedText: "Hallo, Welt!",
+  }),
+});
+
+if (response.ok) {
+  const result = await response.json();
+  console.log("Score:", result.data.score);
+} else {
+  const error = await response.json();
+  console.error("Error:", response.status, error);
+}
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    url := "https://platform.algebras.ai/api/v1/translation/gemba"
+
+    payload := map[string]interface{}{
+        "sourceLang":     "en",
+        "targetLang":     "de",
+        "sourceText":     "Hello, World!",
+        "translatedText": "Hallo, Welt!",
+    }
+
+    jsonData, _ := json.Marshal(payload)
+
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+
+    if resp.StatusCode == 200 {
+        var result map[string]interface{}
+        json.Unmarshal(body, &result)
+        data := result["data"].(map[string]interface{})
+        fmt.Println("Score:", data["score"])
+    } else {
+        fmt.Printf("Error: %d\n", resp.StatusCode)
+        fmt.Println(string(body))
+    }
+}
+```
+</TabItem>
+</Tabs>

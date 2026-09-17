@@ -1,6 +1,8 @@
 ---
 title: Configuration
 description: Configure Algebras CLI for your project
+sidebar:
+  order: 2
 ---
 
 The Algebras CLI uses a `.algebras.config` file to manage your project settings. This file defines which languages to translate, where your source files are located, and how translations should be generated.
@@ -44,7 +46,6 @@ source_files:
 
 api:
   provider: algebras-ai
-  model: gpt-4
 ```
 
 ## Configuration Sections
@@ -85,8 +86,7 @@ Configure your translation provider:
 
 ```yaml
 api:
-  provider: algebras-ai  # Default provider
-  model: gpt-4          # Model to use
+  provider: algebras-ai  # Default and currently only supported provider
 ```
 
 ## Framework-Specific Examples
@@ -181,12 +181,11 @@ export ALGEBRAS_MAX_PARALLEL_BATCHES=5
 ### Batch Processing Settings
 
 ```yaml
-api:
-  provider: algebras-ai
-  model: gpt-4
-  batch_size: 10
-  max_parallel_batches: 3
+batch_size: 10
+max_parallel_batches: 3
 ```
+
+`batch_size` and `max_parallel_batches` are top-level config keys (not nested under `api`), matching what `algebras configure --batch-size`/`--max-parallel-batches` write.
 
 ### String Normalization
 
@@ -195,23 +194,18 @@ Control how strings are processed before translation:
 ```yaml
 api:
   provider: algebras-ai
-  model: gpt-4
   normalize_strings: true  # Remove escaped characters like \'
 ```
 
 ## Configuration Commands
 
-### Add Languages
+### Add a Language
 
 ```bash
-algebras add es fr de
+algebras add es
 ```
 
-### Remove Languages
-
-```bash
-algebras remove es
-```
+`add` takes one language per invocation. There is no `algebras remove` command — remove a language by deleting its entry from `languages` in `.algebras.config`.
 
 ### Configure Settings
 
@@ -222,6 +216,7 @@ algebras configure --batch-size 10 --max-parallel-batches 3
 ### Check Configuration
 
 ```bash
+algebras configure
 algebras status
 ```
 

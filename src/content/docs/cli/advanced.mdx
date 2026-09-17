@@ -1,6 +1,8 @@
 ---
 title: Advanced Features
 description: Advanced features and capabilities of Algebras CLI
+sidebar:
+  order: 5
 ---
 
 The Algebras CLI offers several advanced features to optimize your localization workflow, including UI-safe translations, custom prompts, glossary management, batch processing, and Git integration.
@@ -75,12 +77,28 @@ Algebras CLI supports glossary management for consistent terminology across tran
 
 ### Creating Glossaries
 
-Glossaries can be created through the platform or uploaded from CSV/XLSX files.
+Glossaries can be created through the platform, or uploaded directly from a CSV, TSV, or XLSX file using `algebras glossary push`:
+
+```bash
+algebras glossary push terms.csv --name "Product Glossary"
+```
+
+This creates a new glossary and uploads the terms in batches (100 per batch by default, adjustable with `--batch-size`). The command prints the new glossary's ID, which you'll use with `--glossary-id`. Other options:
+
+- `--rows-ids <ids>` - Upload only specific rows (comma-separated row numbers or record IDs)
+- `--max-length <number>` - Skip terms longer than this (default: 255)
+- `--debug` - Log outgoing requests before sending
 
 ### Using Glossaries
 
 ```bash
 algebras translate --glossary-id glossary-123
+```
+
+Or set it as a project default so every `translate` run uses it automatically:
+
+```bash
+algebras configure --glossary-id glossary-123
 ```
 
 ### Glossary Benefits
@@ -121,6 +139,45 @@ algebras configure --batch-size 10 --max-parallel-batches 3
 - **Fewer parallel batches** for rate limit compliance
 - **More parallel batches** for maximum throughput
 
+## Forcing and Caching Behavior
+
+`translate` normally skips files/keys that are already up to date and uses translation caching. A few flags override that behavior for specific cases:
+
+### Force Re-translating Specific Keys
+
+```bash
+# Force everything to re-translate
+algebras translate --force
+
+# Force only specific keys, leaving the rest untouched
+algebras translate --force "common.title,common.subtitle"
+```
+
+### Bypassing the Cache
+
+```bash
+# Skip both the API-side and local translation cache
+algebras translate --no-cache
+```
+
+Useful when a previous translation was wrong and you need a genuinely fresh result rather than a cached one.
+
+### Regenerating Files From Scratch
+
+By default, `translate` updates existing target files in place. To discard the existing target file and regenerate it entirely:
+
+```bash
+algebras translate --regenerate-from-scratch
+```
+
+### Legacy Synchronous Batch Endpoint
+
+`translate` submits jobs to an async submit-and-poll endpoint by default. If you need the older blocking behavior:
+
+```bash
+algebras translate --sync-batch
+```
+
 ## Git Integration
 
 Algebras CLI automatically tracks translation changes using Git.
@@ -138,8 +195,8 @@ The CLI automatically:
 # Skip git validation (useful for CI)
 algebras translate --only-missing
 
-# CI-friendly command
-algebras ci --fail-on-error
+# CI-friendly check — exits non-zero if translations are missing or outdated
+algebras ci
 ```
 
 ### Git Workflow Integration
@@ -222,8 +279,9 @@ algebras update --only-missing
 ### Selective Translation
 
 ```bash
-# Translate specific languages
-algebras translate --languages es fr
+# Translate a single language at a time
+algebras translate --language es
+algebras translate --language fr
 ```
 
 ### Quality Assurance
@@ -256,11 +314,11 @@ Shows detailed progress information including:
 algebras status
 ```
 
-Shows:
-- Configuration status
-- Recent translation history
-- Performance statistics
-- Error counts
+Shows, per configured language:
+- Translated vs. expected key counts and completion percentage
+- Outdated key counts
+- Translated vs. expected file counts
+- Warnings for language codes the API doesn't recognize
 
 ## Integration Examples
 
@@ -281,14 +339,16 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.12'
       - name: Install Algebras CLI
         run: pip install git+https://github.com/algebras-ai/algebras-cli.git
-      - name: Update Translations
-        run: algebras ci --only-missing --fail-on-error
+      - name: Check Translations
+        run: algebras ci --only-missing
         env:
           ALGEBRAS_API_KEY: ${{ secrets.ALGEBRAS_API_KEY }}
 ```
+
+`algebras ci` already exits with a non-zero status on missing/outdated translations, which fails the job — no extra flag needed.
 
 ### Pre-commit Hook
 

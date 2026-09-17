@@ -1,0 +1,512 @@
+---
+title: Translation (Batch Mode)
+description: API endpoints for batch text translation
+sidebar:
+  order: 2
+---
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+## Translate Batch
+
+Translate multiple texts with the same translation settings in a single blocking request.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/post_translation_translate_batch" target="_blank" rel="noopener noreferrer"><code>POST /translation/translate-batch</code></a>
+
+### Request Body
+
+Sent as JSON.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `texts` | array of strings | yes | Texts to translate (max 20) |
+| `contexts` | array of strings/nulls | no | Optional per-text translator context, aligned by index with `texts` |
+| `sourceLanguage` | string | yes | Source language code (use `auto` for automatic detection) |
+| `targetLanguage` | string | yes | Target language code |
+| `glossaryId` | string | no | Glossary ID to apply during translation |
+| `prompt` | string | no | Custom prompt to guide translation |
+| `flag` | boolean | no | Preserve source length when translating |
+| `ignoreCache` | boolean | no | Ignore previously cached translation results |
+| `fluency` | boolean | no | Evaluate translation fluency for each text in the same LLM call |
+
+### Response
+
+**Success Response (200)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "translations": [
+      { "index": 0, "content": "Hallo, Welt!" },
+      { "index": 1, "content": "Wie geht es dir?" },
+      { "index": 2, "content": "Vielen Dank" }
+    ],
+    "batch_summary": {
+      "total": 3,
+      "successful": 3,
+      "failed": 0,
+      "total_credits": 12
+    },
+    "word_count": 9
+  }
+}
+```
+
+<Aside type="note">
+  Each entry in `translations` is matched back to its request index. A failed item carries `error` and `status_code` instead of `content`; a successful item may also carry a `warning`. `fluency` is only present when `fluency: true` was sent, as an array of per-index scores aligned the same way.
+</Aside>
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/translate-batch" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "sourceLanguage": "en",
+           "targetLanguage": "de",
+           "texts": [
+             "Hello, World!",
+             "How are you?",
+             "Thank you very much"
+           ]
+         }'
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+url = "https://platform.algebras.ai/api/v1/translation/translate-batch"
+headers = {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+data = {
+    "sourceLanguage": "en",
+    "targetLanguage": "de",
+    "texts": [
+        "Hello, World!",
+        "How are you?",
+        "Thank you very much"
+    ]
+}
+
+response = requests.post(url, headers=headers, json=data)
+
+if response.status_code == 200:
+    result = response.json()
+    for translation in result["data"]["translations"]:
+        print(f"Translation {translation['index']}: {translation.get('content')}")
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const url = "https://platform.algebras.ai/api/v1/translation/translate-batch";
+
+const response = await fetch(url, {
+  method: "POST",
+  headers: {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    sourceLanguage: "en",
+    targetLanguage: "de",
+    texts: [
+      "Hello, World!",
+      "How are you?",
+      "Thank you very much",
+    ],
+  }),
+});
+
+if (response.ok) {
+  const result = await response.json();
+  result.data.translations.forEach((t) => {
+    console.log(`Translation ${t.index}:`, t.content ?? t.error);
+  });
+} else {
+  const error = await response.json();
+  console.error("Error:", response.status, error);
+}
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    url := "https://platform.algebras.ai/api/v1/translation/translate-batch"
+
+    payload := map[string]interface{}{
+        "sourceLanguage": "en",
+        "targetLanguage": "de",
+        "texts": []string{
+            "Hello, World!",
+            "How are you?",
+            "Thank you very much",
+        },
+    }
+
+    jsonData, _ := json.Marshal(payload)
+
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+
+    if resp.StatusCode == 200 {
+        var result map[string]interface{}
+        json.Unmarshal(body, &result)
+        data := result["data"].(map[string]interface{})
+        translations := data["translations"].([]interface{})
+        for _, t := range translations {
+            item := t.(map[string]interface{})
+            fmt.Printf("Translation %v: %v\n", item["index"], item["content"])
+        }
+    } else {
+        fmt.Printf("Error: %d\n", resp.StatusCode)
+        fmt.Println(string(body))
+    }
+}
+```
+</TabItem>
+</Tabs>
+
+## Start Async Batch Translation Job
+
+Same request shape as `/translation/translate-batch`, but dispatches the batch and returns a job ID immediately instead of blocking for the result.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/post_translation_translate_batch_async" target="_blank" rel="noopener noreferrer"><code>POST /translation/translate-batch-async</code></a>
+
+### Request Body
+
+Same fields as [Translate Batch](#request-body) above: `texts`, `contexts`, `sourceLanguage`, `targetLanguage`, `glossaryId`, `prompt`, `flag`, `ignoreCache`, `fluency`.
+
+### Headers
+
+| Header | Required | Description |
+|---|---|---|
+| `X-Webhook-Url` | no | URL to receive a `POST` notification with the batch result once the job completes |
+
+### Response
+
+**Success Response (200)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "job_id": "cmabc123batchjob",
+    "status": "PENDING"
+  }
+}
+```
+
+<Aside type="note">
+  `status` is `READY` only when every text in the batch was an exact cache hit, in which case the result is already available from the status endpoint below; otherwise it's `PENDING` and you poll with `job_id`.
+</Aside>
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/translate-batch-async" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "sourceLanguage": "en",
+           "targetLanguage": "de",
+           "texts": [
+             "Hello, World!",
+             "How are you?",
+             "Thank you very much"
+           ]
+         }'
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+url = "https://platform.algebras.ai/api/v1/translation/translate-batch-async"
+headers = {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+data = {
+    "sourceLanguage": "en",
+    "targetLanguage": "de",
+    "texts": [
+        "Hello, World!",
+        "How are you?",
+        "Thank you very much"
+    ]
+}
+
+response = requests.post(url, headers=headers, json=data)
+
+if response.status_code == 200:
+    result = response.json()
+    job_id = result["data"]["job_id"]
+    status = result["data"]["status"]
+    print(f"Job ID: {job_id}, Status: {status}")
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const url = "https://platform.algebras.ai/api/v1/translation/translate-batch-async";
+
+const response = await fetch(url, {
+  method: "POST",
+  headers: {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    sourceLanguage: "en",
+    targetLanguage: "de",
+    texts: [
+      "Hello, World!",
+      "How are you?",
+      "Thank you very much",
+    ],
+  }),
+});
+
+if (response.ok) {
+  const result = await response.json();
+  console.log("Job ID:", result.data.job_id);
+  console.log("Status:", result.data.status);
+} else {
+  const error = await response.json();
+  console.error("Error:", response.status, error);
+}
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    url := "https://platform.algebras.ai/api/v1/translation/translate-batch-async"
+
+    payload := map[string]interface{}{
+        "sourceLanguage": "en",
+        "targetLanguage": "de",
+        "texts": []string{
+            "Hello, World!",
+            "How are you?",
+            "Thank you very much",
+        },
+    }
+
+    jsonData, _ := json.Marshal(payload)
+
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+
+    if resp.StatusCode == 200 {
+        var result map[string]interface{}
+        json.Unmarshal(body, &result)
+        data := result["data"].(map[string]interface{})
+        fmt.Printf("Job ID: %v, Status: %v\n", data["job_id"], data["status"])
+    } else {
+        fmt.Printf("Error: %d\n", resp.StatusCode)
+        fmt.Println(string(body))
+    }
+}
+```
+</TabItem>
+</Tabs>
+
+## Get Async Batch Translation Job Status
+
+Get the status and result of an async batch translation job by ID.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/get_translation_translate_batch_async__id_" target="_blank" rel="noopener noreferrer"><code>GET /translation/translate-batch-async/\{id\}</code></a>
+
+### Path Parameters
+
+- `id`: The `job_id` returned from the start-job endpoint
+
+### Response
+
+**Success Response (200)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "id": "cmabc123batchjob",
+    "status": "READY",
+    "createdAt": "2025-01-12T22:31:00.000Z",
+    "completedAt": "2025-01-12T22:31:48.856Z",
+    "result": {
+      "translations": [
+        { "index": 0, "content": "Hallo, Welt!" },
+        { "index": 1, "content": "Wie geht es dir?" },
+        { "index": 2, "content": "Vielen Dank" }
+      ],
+      "batch_summary": {
+        "total": 3,
+        "successful": 3,
+        "failed": 0,
+        "total_credits": 12
+      },
+      "word_count": 9
+    },
+    "sourceLanguage": "en",
+    "targetLanguage": "de"
+  }
+}
+```
+
+`status` is one of `PENDING`, `READY`, or `ERROR`. `result` (same shape as the sync `/translate-batch` response data) is present only when `status` is `READY`; `error` is present only when `status` is `ERROR`.
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X GET "https://platform.algebras.ai/api/v1/translation/translate-batch-async/cmabc123batchjob" \
+     -H "X-Api-Key: your_api_key_here"
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+job_id = "cmabc123batchjob"
+url = f"https://platform.algebras.ai/api/v1/translation/translate-batch-async/{job_id}"
+headers = {
+    "X-Api-Key": "your_api_key_here"
+}
+
+response = requests.get(url, headers=headers)
+
+if response.status_code == 200:
+    result = response.json()
+    data = result["data"]
+    print(f"Status: {data['status']}")
+    if data.get("result"):
+        print(f"Result: {data['result']}")
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const jobId = "cmabc123batchjob";
+const url = `https://platform.algebras.ai/api/v1/translation/translate-batch-async/${jobId}`;
+
+const response = await fetch(url, {
+  method: "GET",
+  headers: {
+    "X-Api-Key": "your_api_key_here",
+  },
+});
+
+if (response.ok) {
+  const result = await response.json();
+  console.log("Status:", result.data.status);
+  if (result.data.result) {
+    console.log("Result:", result.data.result);
+  }
+} else {
+  const error = await response.json();
+  console.error("Error:", response.status, error);
+}
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    jobID := "cmabc123batchjob"
+    url := fmt.Sprintf("https://platform.algebras.ai/api/v1/translation/translate-batch-async/%s", jobID)
+
+    req, _ := http.NewRequest("GET", url, nil)
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+
+    if resp.StatusCode == 200 {
+        var result map[string]interface{}
+        json.Unmarshal(body, &result)
+        data := result["data"].(map[string]interface{})
+        fmt.Printf("Status: %v\n", data["status"])
+        if result, ok := data["result"]; ok {
+            fmt.Printf("Result: %v\n", result)
+        }
+    } else {
+        fmt.Printf("Error: %d\n", resp.StatusCode)
+        fmt.Println(string(body))
+    }
+}
+```
+</TabItem>
+</Tabs>

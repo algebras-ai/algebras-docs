@@ -11,7 +11,11 @@ export default defineConfig({
     assets: 'app_assets',
   },
   redirects: {
-    '/api/': '/api/translation/',
+    '/api/': '/api/translation/translate/',
+    '/api/translation/': '/api/translation/translate/',
+    '/api/batch-translation/': '/api/translation/translate-batch/',
+    '/api/agentic-translation/': '/api/translation/agentic-translation/',
+    '/api/localization-table/': '/api/translation/localization-table/',
     '/cli/': '/cli/installation/',
   },
   integrations: [
@@ -28,15 +32,26 @@ export default defineConfig({
         },
         {
           label: 'Algebras Platform',
-          autogenerate: { directory: 'app' },
+          items: [{ autogenerate: { directory: 'app' } }],
         },
         {
           label: 'Algebras API',
-          autogenerate: { directory: 'api' },
+          items: [
+            { label: 'Languages', slug: 'api/languages' },
+            {
+              label: 'Translation',
+              items: [{ autogenerate: { directory: 'api/translation' } }],
+            },
+            {
+              label: 'Glossaries',
+              items: [{ autogenerate: { directory: 'api/glossaries' } }],
+            },
+            { label: 'Metrics', slug: 'api/metrics' },
+          ],
         },
         {
           label: 'Algebras CLI',
-          autogenerate: { directory: 'cli' },
+          items: [{ autogenerate: { directory: 'cli' } }],
         },
       ],
     }),

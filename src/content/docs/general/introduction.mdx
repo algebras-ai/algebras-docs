@@ -23,7 +23,7 @@ curl -X GET "https://platform.algebras.ai/api/v1/health" \
 
 ### Health Check
 
-**Endpoint:** `GET /health`
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Common/get_health" target="_blank" rel="noopener noreferrer"><code>GET /health</code></a>
 
 Checks the API's health status.
 
@@ -42,7 +42,7 @@ Checks the API's health status.
 
 ### Language Support
 
-**Endpoint:** `GET /translation/languages`
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Languages/get_translation_languages" target="_blank" rel="noopener noreferrer"><code>GET /translation/languages</code></a>
 
 Retrieves the list of supported languages.
 
@@ -73,19 +73,9 @@ curl -X GET "https://platform.algebras.ai/api/v1/translation/languages" \
 
 ### Translation
 
-**Endpoint:** `POST /translation/translate`
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/post_translation_translate" target="_blank" rel="noopener noreferrer"><code>POST /translation/translate</code></a>
 
-Translates the given text to the target language.
-
-**Request Body:**
-
-```json
-{
-  "sourceLanguage": "auto",
-  "targetLanguage": "de",
-  "text": "Hello, World!"
-}
-```
+Translates the given text to the target language. Sent as `multipart/form-data` — see the [Translation API reference](/api/translation/translate/) for the full field list.
 
 **Response Example:**
 
@@ -101,12 +91,9 @@ Translates the given text to the target language.
 # Translate text from English to German
 curl -X POST "https://platform.algebras.ai/api/v1/translation/translate" \
      -H "X-Api-Key: your_api_key_here" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "sourceLanguage": "auto",
-       "targetLanguage": "de",
-       "text": "Hello, World!"
-     }'
+     -F "sourceLanguage=auto" \
+     -F "targetLanguage=de" \
+     -F "textContent=Hello, World!"
 ```
 
 ## Error Handling

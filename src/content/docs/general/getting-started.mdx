@@ -86,12 +86,9 @@ export ALGEBRAS_API_KEY=your_api_key_here
 ```bash
 curl -X POST "https://platform.algebras.ai/api/v1/translation/translate" \
      -H "X-Api-Key: $ALGEBRAS_API_KEY" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "sourceLanguage": "auto",
-       "targetLanguage": "es",
-       "text": "Hello, world!"
-     }'
+     -F "sourceLanguage=auto" \
+     -F "targetLanguage=es" \
+     -F "textContent=Hello, world!"
 ```
 
 **Response:**
@@ -118,8 +115,8 @@ Now that you have the basics working, explore these advanced features:
 
 ### For API Users
 
-- **[API Examples](/api/batch-translation/)** - Code examples in multiple languages
-- **[Translation API](/api/translation/)** - Complete API reference
+- **[API Examples](/api/translation/translate-batch/)** - Code examples in multiple languages
+- **[Translation API](/api/translation/translate/)** - Complete API reference
 - **[Languages API](/api/languages/)** - Supported languages
 
 ## Common Issues & Solutions
@@ -151,4 +148,4 @@ Now that you have the basics working, explore these advanced features:
 
 ---
 
-Ready to dive deeper? Check out our [CLI documentation](/cli/) or [API examples](/api/batch-translation/) for more advanced usage patterns.
+Ready to dive deeper? Check out our [CLI documentation](/cli/) or [API examples](/api/translation/translate-batch/) for more advanced usage patterns.

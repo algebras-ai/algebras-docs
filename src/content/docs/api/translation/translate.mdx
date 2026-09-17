@@ -1,0 +1,196 @@
+---
+title: Translation
+description: API endpoints for text translation
+sidebar:
+  order: 1
+---
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+## Translate Text
+
+Translate text between supported languages.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/post_translation_translate" target="_blank" rel="noopener noreferrer"><code>POST /translation/translate</code></a>
+
+### Request Body
+
+Sent as `multipart/form-data`.
+
+| Field            | Type      | Required                                | Description                                                                          |
+| ---------------- | --------- | ---------------------------------------- | ------------------------------------------------------------------------------------- |
+| `sourceLanguage` | string    | yes                                      | Source language code (use `auto` for automatic detection)                             |
+| `targetLanguage` | string    | yes                                      | Target language code                                                                   |
+| `textContent`    | string    | one of `textContent` / `fileContent`     | Text to translate                                                                      |
+| `fileContent`    | file(s)   | one of `textContent` / `fileContent`     | CSV file(s) to translate instead of raw text                                          |
+| `glossaryId`     | string    | no                                       | Glossary ID to apply during translation                                               |
+| `prompt`         | string    | no                                       | Custom prompt to guide translation                                                    |
+| `flag`           | boolean   | no                                       | Preserve source length when translating                                               |
+| `ignoreCache`    | boolean   | no                                       | Ignore previously cached translation results                                          |
+| `fluency`        | boolean   | no                                       | Also return a fluency evaluation for the translation (text-only, skipped for long text) |
+
+<Aside type="note">
+  If `fileContent` is used instead of `textContent`, the response is returned as an `application/zip` file (translated CSVs) rather than JSON.
+</Aside>
+
+### Response
+
+**Success Response (200)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": "Hallo, Welt!"
+}
+```
+
+**Success Response (200) — with `fluency: true`**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": "Hallo, Welt!",
+  "fluency": {
+    "value": 9.2,
+    "idiomatic": 9,
+    "collocational": 9,
+    "discourse": 9,
+    "pragmatic": 10,
+    "calque": 9,
+    "issue_type": "none",
+    "severity": null,
+    "problematic_phrase": null,
+    "suggested_fix": null,
+    "main_issue": null
+  }
+}
+```
+
+**Error Response (400)**
+
+```json
+{
+  "status": "error",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "error": {
+    "message": "Invalid request parameters."
+  }
+}
+```
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/translate" \
+     -H "X-Api-Key: your_api_key_here" \
+     -F "sourceLanguage=auto" \
+     -F "targetLanguage=de" \
+     -F "textContent=Hello, World!"
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+url = "https://platform.algebras.ai/api/v1/translation/translate"
+headers = {
+    "X-Api-Key": "your_api_key_here"
+}
+# Use the `files=` param with (None, value) tuples to force a real
+# multipart/form-data body even though there's no file being uploaded.
+form_data = {
+    "sourceLanguage": (None, "auto"),
+    "targetLanguage": (None, "de"),
+    "textContent": (None, "Hello, World!"),
+}
+
+response = requests.post(url, headers=headers, files=form_data)
+
+if response.status_code == 200:
+    result = response.json()
+    translated_text = result["data"]
+    print(f"Translated text: {translated_text}")
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const url = "https://platform.algebras.ai/api/v1/translation/translate";
+
+const formData = new FormData();
+formData.append("sourceLanguage", "auto");
+formData.append("targetLanguage", "de");
+formData.append("textContent", "Hello, World!");
+
+const response = await fetch(url, {
+  method: "POST",
+  headers: {
+    "X-Api-Key": "your_api_key_here",
+    // Don't set Content-Type manually — fetch adds the multipart
+    // boundary for you when the body is a FormData instance.
+  },
+  body: formData,
+});
+
+if (response.ok) {
+  const result = await response.json();
+  console.log("Translated text:", result.data);
+} else {
+  const error = await response.json();
+  console.error("Error:", response.status, error);
+}
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "mime/multipart"
+    "net/http"
+)
+
+func main() {
+    url := "https://platform.algebras.ai/api/v1/translation/translate"
+
+    body := &bytes.Buffer{}
+    writer := multipart.NewWriter(body)
+    writer.WriteField("sourceLanguage", "auto")
+    writer.WriteField("targetLanguage", "de")
+    writer.WriteField("textContent", "Hello, World!")
+    writer.Close()
+
+    req, _ := http.NewRequest("POST", url, body)
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+    req.Header.Set("Content-Type", writer.FormDataContentType())
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    respBody, _ := io.ReadAll(resp.Body)
+
+    if resp.StatusCode == 200 {
+        var result map[string]interface{}
+        json.Unmarshal(respBody, &result)
+        fmt.Println("Translated text:", result["data"])
+    } else {
+        fmt.Printf("Error: %d\n", resp.StatusCode)
+        fmt.Println(string(respBody))
+    }
+}
+```
+</TabItem>
+</Tabs>

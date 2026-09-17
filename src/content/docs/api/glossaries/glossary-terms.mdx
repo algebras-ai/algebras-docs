@@ -1,0 +1,863 @@
+---
+title: Glossary Terms
+description: API endpoints for managing terms within a glossary
+sidebar:
+  order: 2
+---
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+Terms live inside a [glossary](/api/glossaries/glossaries/) and carry per-language definitions. A term with a definition in the source and target language of a translation request is eligible to be applied when that glossary is linked via `glossaryId`.
+
+## List Terms
+
+Retrieves a paginated list of all terms for a specific glossary.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Glossaries/get_translation_glossaries__id__terms" target="_blank" rel="noopener noreferrer"><code>GET /translation/glossaries/\{id\}/terms</code></a>
+
+### Path Parameters
+
+- `id`: The glossary ID
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `page` | integer | no | Page number (default `1`) |
+| `limit` | integer | no | Items per page, 1-100 (default `50`) |
+
+### Response
+
+**Success Response (200)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": [
+    {
+      "id": "cmterm123",
+      "glossaryId": "cmglossary123",
+      "translationFlag": true,
+      "createdAt": "2025-01-10T09:05:00.000Z",
+      "updatedAt": "2025-01-10T09:05:00.000Z",
+      "definitions": [
+        { "language": "en", "term": "API", "definition": "Application Programming Interface", "createdAt": "2025-01-10T09:05:00.000Z", "updatedAt": "2025-01-10T09:05:00.000Z" },
+        { "language": "de", "term": "API", "definition": "Programmierschnittstelle", "createdAt": "2025-01-10T09:05:00.000Z", "updatedAt": "2025-01-10T09:05:00.000Z" }
+      ]
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 50,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X GET "https://platform.algebras.ai/api/v1/translation/glossaries/cmglossary123/terms?page=1&limit=50" \
+     -H "X-Api-Key: your_api_key_here"
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+glossary_id = "cmglossary123"
+url = f"https://platform.algebras.ai/api/v1/translation/glossaries/{glossary_id}/terms"
+headers = {"X-Api-Key": "your_api_key_here"}
+params = {"page": 1, "limit": 50}
+
+response = requests.get(url, headers=headers, params=params)
+
+if response.status_code == 200:
+    for term in response.json()["data"]:
+        print(term["id"], [d["term"] for d in term["definitions"]])
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const glossaryId = "cmglossary123";
+const url = `https://platform.algebras.ai/api/v1/translation/glossaries/${glossaryId}/terms?page=1&limit=50`;
+
+const response = await fetch(url, {
+  method: "GET",
+  headers: { "X-Api-Key": "your_api_key_here" },
+});
+
+if (response.ok) {
+  const result = await response.json();
+  result.data.forEach((t) => console.log(t.id, t.definitions.map((d) => d.term)));
+} else {
+  const error = await response.json();
+  console.error("Error:", response.status, error);
+}
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    glossaryID := "cmglossary123"
+    url := fmt.Sprintf("https://platform.algebras.ai/api/v1/translation/glossaries/%s/terms?page=1&limit=50", glossaryID)
+
+    req, _ := http.NewRequest("GET", url, nil)
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+
+    if resp.StatusCode == 200 {
+        var result map[string]interface{}
+        json.Unmarshal(body, &result)
+        terms := result["data"].([]interface{})
+        for _, t := range terms {
+            item := t.(map[string]interface{})
+            fmt.Println(item["id"])
+        }
+    } else {
+        fmt.Printf("Error: %d\n", resp.StatusCode)
+        fmt.Println(string(body))
+    }
+}
+```
+</TabItem>
+</Tabs>
+
+## Create Term
+
+Creates a single term with definitions for one or more languages. All definitions belong to the same term.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Glossaries/post_translation_glossaries__id__terms" target="_blank" rel="noopener noreferrer"><code>POST /translation/glossaries/\{id\}/terms</code></a>
+
+### Path Parameters
+
+- `id`: The glossary ID
+
+### Request Body
+
+Sent as JSON.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `definitions` | array of objects | yes | Definitions for this term, one per language |
+| `definitions[].language` | string | yes | Language code |
+| `definitions[].term` | string | yes | The term text |
+| `definitions[].definition` | string | yes | Definition of the term |
+
+### Response
+
+**Success Response (200)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "id": "cmterm123",
+    "glossaryId": "cmglossary123",
+    "translationFlag": true,
+    "createdAt": "2025-01-12T22:31:48.856Z",
+    "updatedAt": "2025-01-12T22:31:48.856Z",
+    "definitions": [
+      { "language": "en", "term": "API", "definition": "Application Programming Interface", "createdAt": "2025-01-12T22:31:48.856Z", "updatedAt": "2025-01-12T22:31:48.856Z" },
+      { "language": "de", "term": "API", "definition": "Programmierschnittstelle", "createdAt": "2025-01-12T22:31:48.856Z", "updatedAt": "2025-01-12T22:31:48.856Z" }
+    ]
+  }
+}
+```
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/glossaries/cmglossary123/terms" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "definitions": [
+             { "language": "en", "term": "API", "definition": "Application Programming Interface" },
+             { "language": "de", "term": "API", "definition": "Programmierschnittstelle" }
+           ]
+         }'
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+glossary_id = "cmglossary123"
+url = f"https://platform.algebras.ai/api/v1/translation/glossaries/{glossary_id}/terms"
+headers = {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+data = {
+    "definitions": [
+        {"language": "en", "term": "API", "definition": "Application Programming Interface"},
+        {"language": "de", "term": "API", "definition": "Programmierschnittstelle"}
+    ]
+}
+
+response = requests.post(url, headers=headers, json=data)
+
+if response.status_code == 200:
+    print("Created term:", response.json()["data"]["id"])
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const glossaryId = "cmglossary123";
+const url = `https://platform.algebras.ai/api/v1/translation/glossaries/${glossaryId}/terms`;
+
+const response = await fetch(url, {
+  method: "POST",
+  headers: {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    definitions: [
+      { language: "en", term: "API", definition: "Application Programming Interface" },
+      { language: "de", term: "API", definition: "Programmierschnittstelle" },
+    ],
+  }),
+});
+
+if (response.ok) {
+  const result = await response.json();
+  console.log("Created term:", result.data.id);
+} else {
+  const error = await response.json();
+  console.error("Error:", response.status, error);
+}
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    glossaryID := "cmglossary123"
+    url := fmt.Sprintf("https://platform.algebras.ai/api/v1/translation/glossaries/%s/terms", glossaryID)
+
+    payload := map[string]interface{}{
+        "definitions": []map[string]string{
+            {"language": "en", "term": "API", "definition": "Application Programming Interface"},
+            {"language": "de", "term": "API", "definition": "Programmierschnittstelle"},
+        },
+    }
+
+    jsonData, _ := json.Marshal(payload)
+
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+
+    if resp.StatusCode == 200 {
+        var result map[string]interface{}
+        json.Unmarshal(body, &result)
+        data := result["data"].(map[string]interface{})
+        fmt.Println("Created term:", data["id"])
+    } else {
+        fmt.Printf("Error: %d\n", resp.StatusCode)
+        fmt.Println(string(body))
+    }
+}
+```
+</TabItem>
+</Tabs>
+
+## Create Multiple Terms (Bulk)
+
+Creates multiple terms in one request, each with its own definitions.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Glossaries/post_translation_glossaries__id__terms_bulk" target="_blank" rel="noopener noreferrer"><code>POST /translation/glossaries/\{id\}/terms/bulk</code></a>
+
+### Path Parameters
+
+- `id`: The glossary ID
+
+### Request Body
+
+Sent as JSON.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `terms` | array of objects | yes | Terms to create |
+| `terms[].definitions` | array of objects | yes | Same shape as [Create Term](#create-term)'s `definitions` |
+
+### Response
+
+**Success Response (200) — all terms created**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": [
+    {
+      "id": "cmterm123",
+      "glossaryId": "cmglossary123",
+      "translationFlag": true,
+      "createdAt": "2025-01-12T22:31:48.856Z",
+      "updatedAt": "2025-01-12T22:31:48.856Z",
+      "definitions": [
+        { "language": "en", "term": "API", "definition": "Application Programming Interface", "createdAt": "2025-01-12T22:31:48.856Z", "updatedAt": "2025-01-12T22:31:48.856Z" }
+      ]
+    }
+  ]
+}
+```
+
+**Partial Success Response (207)**
+
+```json
+{
+  "status": "partial_success",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "successful": [
+      {
+        "id": "cmterm123",
+        "glossaryId": "cmglossary123",
+        "translationFlag": true,
+        "createdAt": "2025-01-12T22:31:48.856Z",
+        "updatedAt": "2025-01-12T22:31:48.856Z",
+        "definitions": [
+          { "language": "en", "term": "API", "definition": "Application Programming Interface", "createdAt": "2025-01-12T22:31:48.856Z", "updatedAt": "2025-01-12T22:31:48.856Z" }
+        ]
+      }
+    ],
+    "failed": [
+      { "index": 1, "error": "Definition validation failed", "details": "term is required" }
+    ],
+    "successCount": 1,
+    "failedCount": 1
+  }
+}
+```
+
+<Aside type="note">
+  If every term in the batch fails, the response is `400` with the same `failed`-style entries under `error.details` instead of `data`.
+</Aside>
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/glossaries/cmglossary123/terms/bulk" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "terms": [
+             { "definitions": [{ "language": "en", "term": "API", "definition": "Application Programming Interface" }] },
+             { "definitions": [{ "language": "en", "term": "SDK", "definition": "Software Development Kit" }] }
+           ]
+         }'
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+glossary_id = "cmglossary123"
+url = f"https://platform.algebras.ai/api/v1/translation/glossaries/{glossary_id}/terms/bulk"
+headers = {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+data = {
+    "terms": [
+        {"definitions": [{"language": "en", "term": "API", "definition": "Application Programming Interface"}]},
+        {"definitions": [{"language": "en", "term": "SDK", "definition": "Software Development Kit"}]}
+    ]
+}
+
+response = requests.post(url, headers=headers, json=data)
+
+if response.status_code in (200, 207):
+    print(response.status_code, response.json())
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const glossaryId = "cmglossary123";
+const url = `https://platform.algebras.ai/api/v1/translation/glossaries/${glossaryId}/terms/bulk`;
+
+const response = await fetch(url, {
+  method: "POST",
+  headers: {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    terms: [
+      { definitions: [{ language: "en", term: "API", definition: "Application Programming Interface" }] },
+      { definitions: [{ language: "en", term: "SDK", definition: "Software Development Kit" }] },
+    ],
+  }),
+});
+
+const result = await response.json();
+console.log(response.status, result);
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    glossaryID := "cmglossary123"
+    url := fmt.Sprintf("https://platform.algebras.ai/api/v1/translation/glossaries/%s/terms/bulk", glossaryID)
+
+    payload := map[string]interface{}{
+        "terms": []map[string]interface{}{
+            {"definitions": []map[string]string{{"language": "en", "term": "API", "definition": "Application Programming Interface"}}},
+            {"definitions": []map[string]string{{"language": "en", "term": "SDK", "definition": "Software Development Kit"}}},
+        },
+    }
+
+    jsonData, _ := json.Marshal(payload)
+
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Printf("%d\n%s\n", resp.StatusCode, string(body))
+}
+```
+</TabItem>
+</Tabs>
+
+## Get Term
+
+Retrieves a specific term with all its definitions.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Glossaries/get_translation_glossaries__id__terms__termId_" target="_blank" rel="noopener noreferrer"><code>GET /translation/glossaries/\{id\}/terms/\{termId\}</code></a>
+
+### Path Parameters
+
+- `id`: The glossary ID
+- `termId`: The term ID
+
+### Response
+
+**Success Response (200)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "id": "cmterm123",
+    "glossaryId": "cmglossary123",
+    "translationFlag": true,
+    "createdAt": "2025-01-10T09:05:00.000Z",
+    "updatedAt": "2025-01-10T09:05:00.000Z",
+    "definitions": [
+      { "language": "en", "term": "API", "definition": "Application Programming Interface", "createdAt": "2025-01-10T09:05:00.000Z", "updatedAt": "2025-01-10T09:05:00.000Z" }
+    ]
+  }
+}
+```
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X GET "https://platform.algebras.ai/api/v1/translation/glossaries/cmglossary123/terms/cmterm123" \
+     -H "X-Api-Key: your_api_key_here"
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+glossary_id = "cmglossary123"
+term_id = "cmterm123"
+url = f"https://platform.algebras.ai/api/v1/translation/glossaries/{glossary_id}/terms/{term_id}"
+headers = {"X-Api-Key": "your_api_key_here"}
+
+response = requests.get(url, headers=headers)
+
+if response.status_code == 200:
+    print(response.json()["data"])
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const glossaryId = "cmglossary123";
+const termId = "cmterm123";
+const url = `https://platform.algebras.ai/api/v1/translation/glossaries/${glossaryId}/terms/${termId}`;
+
+const response = await fetch(url, {
+  method: "GET",
+  headers: { "X-Api-Key": "your_api_key_here" },
+});
+
+if (response.ok) {
+  const result = await response.json();
+  console.log(result.data);
+} else {
+  const error = await response.json();
+  console.error("Error:", response.status, error);
+}
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    glossaryID := "cmglossary123"
+    termID := "cmterm123"
+    url := fmt.Sprintf("https://platform.algebras.ai/api/v1/translation/glossaries/%s/terms/%s", glossaryID, termID)
+
+    req, _ := http.NewRequest("GET", url, nil)
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Println(string(body))
+}
+```
+</TabItem>
+</Tabs>
+
+## Update Term
+
+Updates a term's definitions.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Glossaries/put_translation_glossaries__id__terms__termId_" target="_blank" rel="noopener noreferrer"><code>PUT /translation/glossaries/\{id\}/terms/\{termId\}</code></a>
+
+### Path Parameters
+
+- `id`: The glossary ID
+- `termId`: The term ID
+
+### Request Body
+
+Sent as JSON.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `definitions` | array of objects | no | Definitions to set. Each item requires `language`; `term` and `definition` are optional per item |
+
+### Response
+
+**Success Response (200)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "id": "cmterm123",
+    "glossaryId": "cmglossary123",
+    "translationFlag": true,
+    "createdAt": "2025-01-10T09:05:00.000Z",
+    "updatedAt": "2025-01-12T22:31:48.856Z",
+    "definitions": [
+      { "language": "en", "term": "API", "definition": "Application Programming Interface (updated)", "createdAt": "2025-01-10T09:05:00.000Z", "updatedAt": "2025-01-12T22:31:48.856Z" }
+    ]
+  }
+}
+```
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X PUT "https://platform.algebras.ai/api/v1/translation/glossaries/cmglossary123/terms/cmterm123" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "definitions": [
+             { "language": "en", "term": "API", "definition": "Application Programming Interface (updated)" }
+           ]
+         }'
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+glossary_id = "cmglossary123"
+term_id = "cmterm123"
+url = f"https://platform.algebras.ai/api/v1/translation/glossaries/{glossary_id}/terms/{term_id}"
+headers = {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+data = {
+    "definitions": [
+        {"language": "en", "term": "API", "definition": "Application Programming Interface (updated)"}
+    ]
+}
+
+response = requests.put(url, headers=headers, json=data)
+
+if response.status_code == 200:
+    print("Updated:", response.json()["data"]["id"])
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const glossaryId = "cmglossary123";
+const termId = "cmterm123";
+const url = `https://platform.algebras.ai/api/v1/translation/glossaries/${glossaryId}/terms/${termId}`;
+
+const response = await fetch(url, {
+  method: "PUT",
+  headers: {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    definitions: [
+      { language: "en", term: "API", definition: "Application Programming Interface (updated)" },
+    ],
+  }),
+});
+
+if (response.ok) {
+  const result = await response.json();
+  console.log("Updated:", result.data.id);
+} else {
+  const error = await response.json();
+  console.error("Error:", response.status, error);
+}
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    glossaryID := "cmglossary123"
+    termID := "cmterm123"
+    url := fmt.Sprintf("https://platform.algebras.ai/api/v1/translation/glossaries/%s/terms/%s", glossaryID, termID)
+
+    payload := map[string]interface{}{
+        "definitions": []map[string]string{
+            {"language": "en", "term": "API", "definition": "Application Programming Interface (updated)"},
+        },
+    }
+
+    jsonData, _ := json.Marshal(payload)
+
+    req, _ := http.NewRequest("PUT", url, bytes.NewBuffer(jsonData))
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Println(string(body))
+}
+```
+</TabItem>
+</Tabs>
+
+## Delete Term
+
+Deletes a term and all its definitions.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Glossaries/delete_translation_glossaries__id__terms__termId_" target="_blank" rel="noopener noreferrer"><code>DELETE /translation/glossaries/\{id\}/terms/\{termId\}</code></a>
+
+### Path Parameters
+
+- `id`: The glossary ID
+- `termId`: The term ID
+
+### Response
+
+**Success Response (200)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "id": "cmterm123"
+  }
+}
+```
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X DELETE "https://platform.algebras.ai/api/v1/translation/glossaries/cmglossary123/terms/cmterm123" \
+     -H "X-Api-Key: your_api_key_here"
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+glossary_id = "cmglossary123"
+term_id = "cmterm123"
+url = f"https://platform.algebras.ai/api/v1/translation/glossaries/{glossary_id}/terms/{term_id}"
+headers = {"X-Api-Key": "your_api_key_here"}
+
+response = requests.delete(url, headers=headers)
+
+if response.status_code == 200:
+    print("Deleted:", response.json()["data"]["id"])
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const glossaryId = "cmglossary123";
+const termId = "cmterm123";
+const url = `https://platform.algebras.ai/api/v1/translation/glossaries/${glossaryId}/terms/${termId}`;
+
+const response = await fetch(url, {
+  method: "DELETE",
+  headers: { "X-Api-Key": "your_api_key_here" },
+});
+
+if (response.ok) {
+  const result = await response.json();
+  console.log("Deleted:", result.data.id);
+} else {
+  const error = await response.json();
+  console.error("Error:", response.status, error);
+}
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    glossaryID := "cmglossary123"
+    termID := "cmterm123"
+    url := fmt.Sprintf("https://platform.algebras.ai/api/v1/translation/glossaries/%s/terms/%s", glossaryID, termID)
+
+    req, _ := http.NewRequest("DELETE", url, nil)
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Println(string(body))
+}
+```
+</TabItem>
+</Tabs>
