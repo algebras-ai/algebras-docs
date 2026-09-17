@@ -46,10 +46,7 @@ export default defineConfig({
               label: 'Glossaries',
               items: [{ autogenerate: { directory: 'api/glossaries' } }],
             },
-            {
-              label: 'Metrics',
-              items: [{ autogenerate: { directory: 'api/metrics' } }],
-            },
+            { label: 'Metrics', slug: 'api/metrics' },
           ],
         },
         {
