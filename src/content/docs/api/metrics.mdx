@@ -12,7 +12,11 @@ Evaluate an existing source/translation pair independently of the translation en
 
 Evaluates the fluency of a translation across five linguistic dimensions and provides improvement feedback.
 
-**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/post_translation_fluency" target="_blank" rel="noopener noreferrer"><code>POST /translation/fluency</code></a>
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/post_translation_fluency_score" target="_blank" rel="noopener noreferrer"><code>POST /translation/fluency-score</code></a>
+
+<Aside type="caution">
+  `POST /translation/fluency` is a deprecated alias for this endpoint and will be removed in a future release. New integrations should call `/translation/fluency-score` directly.
+</Aside>
 
 ### Request Body
 
@@ -60,7 +64,7 @@ Sent as JSON.
 <Tabs syncKey="lang">
 <TabItem label="bash">
 ```bash
-curl -X POST "https://platform.algebras.ai/api/v1/translation/fluency" \
+curl -X POST "https://platform.algebras.ai/api/v1/translation/fluency-score" \
      -H "X-Api-Key: your_api_key_here" \
      -H "Content-Type: application/json" \
      -d '{
@@ -75,7 +79,7 @@ curl -X POST "https://platform.algebras.ai/api/v1/translation/fluency" \
 ```python
 import requests
 
-url = "https://platform.algebras.ai/api/v1/translation/fluency"
+url = "https://platform.algebras.ai/api/v1/translation/fluency-score"
 headers = {
     "X-Api-Key": "your_api_key_here",
     "Content-Type": "application/json"
@@ -99,7 +103,7 @@ else:
 </TabItem>
 <TabItem label="nodejs">
 ```javascript
-const url = "https://platform.algebras.ai/api/v1/translation/fluency";
+const url = "https://platform.algebras.ai/api/v1/translation/fluency-score";
 
 const response = await fetch(url, {
   method: "POST",
@@ -137,7 +141,7 @@ import (
 )
 
 func main() {
-    url := "https://platform.algebras.ai/api/v1/translation/fluency"
+    url := "https://platform.algebras.ai/api/v1/translation/fluency-score"
 
     payload := map[string]interface{}{
         "sourceLang":     "en",
