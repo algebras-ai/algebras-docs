@@ -34,11 +34,13 @@ Sent as JSON.
 ### How Terms Are Matched
 
 - **Letter case** follows each entry's [`caseSensitivity`](#letter-case-matching) setting. By default, uppercase letters of an entry must be uppercase in the text, and lowercase letters may be either case: `IT` matches "IT" but not "it", and `term` matches "Term" and "TERM".
-- **Whole words only**, except in scripts written without spaces (Chinese, Japanese, Thai and similar), where terms are found anywhere in the text.
-- **Common endings count**: "APIs" and "IT's" count as `API` and `IT`, and "ключи" counts as `ключ`.
+- **Grammatical forms count as the term.** Plurals, cases and conjugations are recognized through each word's dictionary form (lemma): "policies" counts as `policy`, "mice" as `mouse`, "Rechenzentren" as `Rechenzentrum`, "машины" as `машина`, "luces" as `luz`, "والكتاب" as `كتاب`. In multi-word entries every word may change: "машинного обучения" counts as `машинное обучение`. Each match reports whether it is the `exact` entry or an `inflected` form. See [Word Forms](#word-forms).
+- **Words the dictionary doesn't know** (product names, abbreviations, jargon) fall back to a list of common endings per language: "APIs" counts as `API`. Abbreviations are never reduced to a dictionary word, so `IT` doesn't match the pronoun "it".
+- **Whole words only.** A term inside a longer word doesn't count: `API` isn't found in "RAPID". Chinese, Japanese and Thai have no spaces between words, and Korean attaches particles to words, so for these languages a word segmenter decides where words start and end. See [Languages Without Spaces](#languages-without-spaces).
+- **Full-width and half-width characters** match their normal forms: "ＡＰＩ" counts as `API`.
 - **Separators**: spaces, hyphens and line breaks between the words of a multi-word entry are interchangeable, so `machine learning` matches "Machine-learning".
 - **Overlaps**: where entries overlap, the longest one wins. "API keys" counts once, as `API key`, not also as `API`.
-- **Accents** must match, except in text written entirely in capitals, where they are often dropped ("ETAT" matches `état`).
+- **Accents** must match, except in text written entirely in capitals, where they are often dropped ("ETAT" matches `état`). A form that changes a letter's accent is still a form of the word: "Äpfel" counts as `Apfel`.
 - **Target side**: only the target-language entries of terms found in the source are checked.
 
 ### Response
@@ -70,13 +72,13 @@ Response:
       "count": 3,
       "uniqueTerms": 3,
       "matches": [
-        { "termId": "cmterm_it", "glossaryTerm": "IT", "caseSensitivity": "auto", "text": "IT", "start": 4, "end": 6 },
-        { "termId": "cmterm_apikey", "glossaryTerm": "API key", "caseSensitivity": "auto", "text": "API keys", "start": 20, "end": 28 },
-        { "termId": "cmterm_iphone", "glossaryTerm": "iPhone", "caseSensitivity": "auto", "text": "iPhone", "start": 39, "end": 45 }
+        { "termId": "cmterm_it", "glossaryTerm": "IT", "caseSensitivity": "auto", "form": "exact", "text": "IT", "start": 4, "end": 6 },
+        { "termId": "cmterm_apikey", "glossaryTerm": "API key", "caseSensitivity": "auto", "form": "inflected", "text": "API keys", "start": 20, "end": 28 },
+        { "termId": "cmterm_iphone", "glossaryTerm": "iPhone", "caseSensitivity": "auto", "form": "exact", "text": "iPhone", "start": 39, "end": 45 }
       ],
       "ambiguousCount": 1,
       "ambiguousMatches": [
-        { "termId": "cmterm_it", "glossaryTerm": "IT", "caseSensitivity": "auto", "text": "IT", "start": 60, "end": 62, "reason": "all_caps_context" }
+        { "termId": "cmterm_it", "glossaryTerm": "IT", "caseSensitivity": "auto", "form": "exact", "text": "IT", "start": 60, "end": 62, "reason": "all_caps_context" }
       ]
     },
     "target": {
@@ -84,8 +86,8 @@ Response:
       "count": 2,
       "uniqueTerms": 2,
       "matches": [
-        { "termId": "cmterm_it", "glossaryTerm": "IT", "caseSensitivity": "auto", "text": "IT", "start": 6, "end": 8 },
-        { "termId": "cmterm_apikey", "glossaryTerm": "API-Schlüssel", "caseSensitivity": "auto", "text": "API-Schlüssel", "start": 22, "end": 35 }
+        { "termId": "cmterm_it", "glossaryTerm": "IT", "caseSensitivity": "auto", "form": "exact", "text": "IT", "start": 6, "end": 8 },
+        { "termId": "cmterm_apikey", "glossaryTerm": "API-Schlüssel", "caseSensitivity": "auto", "form": "exact", "text": "API-Schlüssel", "start": 22, "end": 35 }
       ],
       "ambiguousCount": 0,
       "ambiguousMatches": []
@@ -99,7 +101,8 @@ Response:
         "sourceAmbiguousCount": 1,
         "targetCount": 1,
         "targetAmbiguousCount": 0,
-        "targetCaseMismatches": []
+        "targetCaseMismatches": [],
+        "targetSpellingVariants": []
       },
       {
         "termId": "cmterm_apikey",
@@ -109,7 +112,8 @@ Response:
         "sourceAmbiguousCount": 0,
         "targetCount": 1,
         "targetAmbiguousCount": 0,
-        "targetCaseMismatches": []
+        "targetCaseMismatches": [],
+        "targetSpellingVariants": []
       },
       {
         "termId": "cmterm_iphone",
@@ -121,7 +125,8 @@ Response:
         "targetAmbiguousCount": 0,
         "targetCaseMismatches": [
           { "text": "Iphone", "start": 45, "end": 51 }
-        ]
+        ],
+        "targetSpellingVariants": []
       }
     ]
   }
@@ -131,7 +136,7 @@ Response:
 Reading the example:
 
 - "IT" in "WE FIXED IT" is ambiguous: in text written in capitals, the abbreviation can't be told apart from the pronoun "it".
-- "API keys" is one match for `API key`, not also a match for `API`.
+- "API keys" is one match for `API key` (an `inflected` form), not also a match for `API`.
 - The translation wrote "Iphone": it isn't counted (`targetCount: 0`) and is reported in `targetCaseMismatches`, so the glossary wasn't followed for `iPhone`.
 
 ### Response Fields
@@ -154,6 +159,7 @@ Each match:
 | `termId` | string | ID of the glossary term |
 | `glossaryTerm` | string | The entry as stored in the glossary |
 | `caseSensitivity` | string | The entry's [letter case setting](#letter-case-matching) applied to this match |
+| `form` | string | `exact`: the entry as written (up to letter case and separators). `inflected`: another grammatical form of it ("keys", "Rechenzentren", 食べた) |
 | `text` | string | The text exactly as it appears in the input |
 | `start`, `end` | integer | Position in the input text, in Unicode code points (`end` is exclusive) |
 | `reason` | string | Only in `ambiguousMatches`, see below |
@@ -168,6 +174,8 @@ Ambiguity reasons:
 |---|---|---|
 | `all_caps_context` | An entry with capital letters, found in text written in capitals | `IT` in "WE FIXED IT" |
 | `initial_capital_only` | An entry whose only capital is its first letter, found in lowercase. Only with the `auto` setting | `Apple` found as "apple" |
+| `lemma_only` | A word that shares only its dictionary form with the entry, which can be a different word | "see" for the entry `saw` (the tool) |
+| `segmentation_boundary` | The term was found inside a longer word (Chinese, Japanese, Thai, Korean) | `学习` (learning) inside "学习者" (learner) |
 
 Each item of `terms` compares one term found in the source with its translation:
 
@@ -179,6 +187,7 @@ Each item of `terms` compares one term found in the source with its translation:
 | `sourceCount`, `sourceAmbiguousCount` | integer | Confident and ambiguous occurrences in the source |
 | `targetCount`, `targetAmbiguousCount` | integer | Confident and ambiguous occurrences in the target |
 | `targetCaseMismatches` | array | Occurrences of the target entry written with the wrong letter case (`text`, `start`, `end`) |
+| `targetSpellingVariants` | array | Occurrences of the target entry in a different spelling of the same word (`text`, `start`, `end`). Japanese only, for example サーバ for `サーバー` |
 
 A term was followed when `targetCount` covers `sourceCount`. Compare the counts the way your content needs: a translation can legitimately use a term fewer times, for example when two sentences are merged.
 
@@ -308,6 +317,49 @@ func main() {
 ```
 </TabItem>
 </Tabs>
+
+## Word Forms
+
+A glossary keeps one form of each term per language, so that translations stay consistent. The counter still has to recognize the term when grammar changes its form. It does this in two passes:
+
+1. **The entry as written**, with letter case, separators and a list of common endings per language taken into account ("APIs" for `API`, "Straßen" for `Straße`).
+2. **Dictionary forms (lemmas)** for the rest of the text. Each word of the text and of the entry is reduced to its dictionary form, and the sequences are compared word by word.
+
+| Language | Text | Entry | Result |
+|---|---|---|---|
+| English | "policies", "mice", "children", "went" | `policy`, `mouse`, `child`, `go` | `inflected` |
+| German | "Rechenzentren", "Äpfel" | `Rechenzentrum`, `Apfel` | `inflected` |
+| Russian | "машины", "машинного обучения" | `машина`, `машинное обучение` | `inflected` |
+| Spanish | "luces" | `luz` | `inflected` |
+| Arabic, Hebrew | "والكتاب", "והספר" | `كتاب`, `ספר` | `inflected` (attached prefixes) |
+| Japanese | 食べた | `食べる` | `inflected` |
+| English | "see", "seeing" | `saw` (the tool) | ambiguous, `lemma_only` |
+
+The last row shows the limit of dictionary forms: different words can share one. When the entry word isn't a dictionary form itself and the two forms share little of their beginning, the match is reported as ambiguous with the reason `lemma_only` instead of being counted.
+
+Dictionary forms are available for about 50 languages, including all major European languages, Russian, Ukrainian, Turkish, Arabic, Hebrew, Persian, Hindi, Indonesian and Malay. For other languages, only the first pass applies.
+
+### Spelling Variants (Japanese)
+
+Japanese often writes the same word in more than one way: サーバ and サーバー (server), いく and 行く (to go). Because a glossary exists to keep terminology consistent, a different spelling of the term isn't counted. On the target side it's listed in `targetSpellingVariants`, so the translation can be corrected to the glossary's spelling. Conjugated forms of the same spelling (食べた for `食べる`) do count.
+
+## Languages Without Spaces
+
+Chinese, Japanese and Thai are written without spaces between words, and Korean attaches particles directly to words. For these languages the counter finds the term in the text and then asks a word segmenter whether the term starts and ends on word boundaries:
+
+| Language | Text | Entry | Result |
+|---|---|---|---|
+| Chinese | 我们使用**机器学习**模型 | `机器学习` | match |
+| Chinese | **学习**者 (learner) | `学习` (learning) | ambiguous, `segmentation_boundary` |
+| Japanese | **機械学習**モデルを | `機械学習` | match |
+| Thai | ผู้**เรียนรู้** | `เรียนรู้` | ambiguous, `segmentation_boundary` |
+| Korean | **머신러닝**은 좋다 | `머신러닝` | match, without the particle 은 |
+
+A term split into several words by the segmenter still matches, as long as its first and last characters are on word boundaries: `机器学习` is two dictionary words, 机器 and 学习. Segmenters can be wrong about new vocabulary, so a term found inside a longer word is reported as ambiguous rather than dropped.
+
+Full-width letters and digits, common in Chinese and Japanese text, match their normal forms: "ＡＰＩキー" contains `API`.
+
+For Lao, Khmer, Burmese and Tibetan, terms are found anywhere in the text, without a boundary check.
 
 ## Letter Case Matching
 
