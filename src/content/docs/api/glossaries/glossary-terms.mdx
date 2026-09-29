@@ -8,6 +8,8 @@ import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
 Terms live inside a [glossary](/api/glossaries/glossaries/) and carry per-language definitions. A term with a definition in the source and target language of a translation request is eligible to be applied when that glossary is linked via `glossaryId`.
 
+Each definition also has a `caseSensitivity` setting (`auto`, `capitals`, `exact` or `ignore`) that controls how the [term counter](/api/glossaries/term-counter/) treats letter case when it looks for that entry in a text. See [Letter Case Matching](/api/glossaries/term-counter/#letter-case-matching).
+
 ## List Terms
 
 Retrieves a paginated list of all terms for a specific glossary.
@@ -41,8 +43,8 @@ Retrieves a paginated list of all terms for a specific glossary.
       "createdAt": "2025-01-10T09:05:00.000Z",
       "updatedAt": "2025-01-10T09:05:00.000Z",
       "definitions": [
-        { "language": "en", "term": "API", "definition": "Application Programming Interface", "createdAt": "2025-01-10T09:05:00.000Z", "updatedAt": "2025-01-10T09:05:00.000Z" },
-        { "language": "de", "term": "API", "definition": "Programmierschnittstelle", "createdAt": "2025-01-10T09:05:00.000Z", "updatedAt": "2025-01-10T09:05:00.000Z" }
+        { "language": "en", "term": "API", "definition": "Application Programming Interface", "caseSensitivity": "auto", "createdAt": "2025-01-10T09:05:00.000Z", "updatedAt": "2025-01-10T09:05:00.000Z" },
+        { "language": "de", "term": "API", "definition": "Programmierschnittstelle", "caseSensitivity": "auto", "createdAt": "2025-01-10T09:05:00.000Z", "updatedAt": "2025-01-10T09:05:00.000Z" }
       ]
     }
   ],
@@ -166,6 +168,7 @@ Sent as JSON.
 | `definitions[].language` | string | yes | Language code |
 | `definitions[].term` | string | yes | The term text |
 | `definitions[].definition` | string | yes | Definition of the term |
+| `definitions[].caseSensitivity` | string | no | `auto` (default), `capitals`, `exact` or `ignore`. How the [term counter](/api/glossaries/term-counter/#letter-case-matching) treats letter case for this entry |
 
 ### Response
 
@@ -182,8 +185,8 @@ Sent as JSON.
     "createdAt": "2025-01-12T22:31:48.856Z",
     "updatedAt": "2025-01-12T22:31:48.856Z",
     "definitions": [
-      { "language": "en", "term": "API", "definition": "Application Programming Interface", "createdAt": "2025-01-12T22:31:48.856Z", "updatedAt": "2025-01-12T22:31:48.856Z" },
-      { "language": "de", "term": "API", "definition": "Programmierschnittstelle", "createdAt": "2025-01-12T22:31:48.856Z", "updatedAt": "2025-01-12T22:31:48.856Z" }
+      { "language": "en", "term": "API", "definition": "Application Programming Interface", "caseSensitivity": "auto", "createdAt": "2025-01-12T22:31:48.856Z", "updatedAt": "2025-01-12T22:31:48.856Z" },
+      { "language": "de", "term": "API", "definition": "Programmierschnittstelle", "caseSensitivity": "auto", "createdAt": "2025-01-12T22:31:48.856Z", "updatedAt": "2025-01-12T22:31:48.856Z" }
     ]
   }
 }
@@ -346,7 +349,7 @@ Sent as JSON.
       "createdAt": "2025-01-12T22:31:48.856Z",
       "updatedAt": "2025-01-12T22:31:48.856Z",
       "definitions": [
-        { "language": "en", "term": "API", "definition": "Application Programming Interface", "createdAt": "2025-01-12T22:31:48.856Z", "updatedAt": "2025-01-12T22:31:48.856Z" }
+        { "language": "en", "term": "API", "definition": "Application Programming Interface", "caseSensitivity": "auto", "createdAt": "2025-01-12T22:31:48.856Z", "updatedAt": "2025-01-12T22:31:48.856Z" }
       ]
     }
   ]
@@ -368,7 +371,7 @@ Sent as JSON.
         "createdAt": "2025-01-12T22:31:48.856Z",
         "updatedAt": "2025-01-12T22:31:48.856Z",
         "definitions": [
-          { "language": "en", "term": "API", "definition": "Application Programming Interface", "createdAt": "2025-01-12T22:31:48.856Z", "updatedAt": "2025-01-12T22:31:48.856Z" }
+          { "language": "en", "term": "API", "definition": "Application Programming Interface", "caseSensitivity": "auto", "createdAt": "2025-01-12T22:31:48.856Z", "updatedAt": "2025-01-12T22:31:48.856Z" }
         ]
       }
     ],
@@ -519,7 +522,7 @@ Retrieves a specific term with all its definitions.
     "createdAt": "2025-01-10T09:05:00.000Z",
     "updatedAt": "2025-01-10T09:05:00.000Z",
     "definitions": [
-      { "language": "en", "term": "API", "definition": "Application Programming Interface", "createdAt": "2025-01-10T09:05:00.000Z", "updatedAt": "2025-01-10T09:05:00.000Z" }
+      { "language": "en", "term": "API", "definition": "Application Programming Interface", "caseSensitivity": "auto", "createdAt": "2025-01-10T09:05:00.000Z", "updatedAt": "2025-01-10T09:05:00.000Z" }
     ]
   }
 }
@@ -622,7 +625,7 @@ Sent as JSON.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `definitions` | array of objects | no | Definitions to set. Each item requires `language`; `term` and `definition` are optional per item |
+| `definitions` | array of objects | no | Definitions to set. Each item requires `language`; `term`, `definition` and `caseSensitivity` are optional per item. Omitting `caseSensitivity` keeps the current value; `auto` resets it to the default |
 
 ### Response
 
@@ -639,7 +642,7 @@ Sent as JSON.
     "createdAt": "2025-01-10T09:05:00.000Z",
     "updatedAt": "2025-01-12T22:31:48.856Z",
     "definitions": [
-      { "language": "en", "term": "API", "definition": "Application Programming Interface (updated)", "createdAt": "2025-01-10T09:05:00.000Z", "updatedAt": "2025-01-12T22:31:48.856Z" }
+      { "language": "en", "term": "API", "definition": "Application Programming Interface (updated)", "caseSensitivity": "auto", "createdAt": "2025-01-10T09:05:00.000Z", "updatedAt": "2025-01-12T22:31:48.856Z" }
     ]
   }
 }

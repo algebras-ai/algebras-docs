@@ -1,0 +1,462 @@
+---
+title: Term Counter (Glossary QA)
+description: Count glossary terms in a text and check that a translation follows the glossary
+sidebar:
+  order: 3
+---
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+The term counter is a quality-assurance tool for [glossaries](/api/glossaries/glossaries/). It finds every occurrence of the glossary's terms in a source text and, when you also send a translation, checks whether the target-language entries of those terms appear in it. Use it to verify that a translation followed the glossary, whether it was produced by the platform, another tool, or a human translator.
+
+The counter doesn't translate anything and doesn't call a language model: results are deterministic and don't consume translation quota.
+
+## Count Terms
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Glossaries/post_translation_glossaries__id__terms_count" target="_blank" rel="noopener noreferrer"><code>POST /translation/glossaries/\{id\}/terms/count</code></a>
+
+### Path Parameters
+
+- `id`: The glossary ID
+
+### Request Body
+
+Sent as JSON.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `sourceLanguage` | string | yes | Language code of `sourceText`. Must be one of the glossary's languages |
+| `sourceText` | string | yes | Text to search, up to 100,000 characters |
+| `targetLanguage` | string | with `targetText` | Language code of `targetText`. Must be one of the glossary's languages |
+| `targetText` | string | with `targetLanguage` | Translation to check, up to 100,000 characters |
+
+`targetLanguage` and `targetText` are sent together or not at all.
+
+### How Terms Are Matched
+
+- **Letter case** follows each entry's [`caseSensitivity`](#letter-case-matching) setting. By default, uppercase letters of an entry must be uppercase in the text, and lowercase letters may be either case: `IT` matches "IT" but not "it", and `term` matches "Term" and "TERM".
+- **Whole words only**, except in scripts written without spaces (Chinese, Japanese, Thai and similar), where terms are found anywhere in the text.
+- **Common endings count**: "APIs" and "IT's" count as `API` and `IT`, and "ключи" counts as `ключ`.
+- **Separators**: spaces, hyphens and line breaks between the words of a multi-word entry are interchangeable, so `machine learning` matches "Machine-learning".
+- **Overlaps**: where entries overlap, the longest one wins. "API keys" counts once, as `API key`, not also as `API`.
+- **Accents** must match, except in text written entirely in capitals, where they are often dropped ("ETAT" matches `état`).
+- **Target side**: only the target-language entries of terms found in the source are checked.
+
+### Response
+
+**Success Response (200)**
+
+The example checks a German translation against a glossary with the terms `IT`, `API key` (German: `API-Schlüssel`) and `iPhone`.
+
+Request:
+
+```json
+{
+  "sourceLanguage": "en",
+  "sourceText": "Our IT team rotates API keys for every iPhone app. WE FIXED IT.",
+  "targetLanguage": "de",
+  "targetText": "Unser IT-Team rotiert API-Schlüssel für jede Iphone-App."
+}
+```
+
+Response:
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "source": {
+      "language": "en",
+      "count": 3,
+      "uniqueTerms": 3,
+      "matches": [
+        { "termId": "cmterm_it", "glossaryTerm": "IT", "caseSensitivity": "auto", "text": "IT", "start": 4, "end": 6 },
+        { "termId": "cmterm_apikey", "glossaryTerm": "API key", "caseSensitivity": "auto", "text": "API keys", "start": 20, "end": 28 },
+        { "termId": "cmterm_iphone", "glossaryTerm": "iPhone", "caseSensitivity": "auto", "text": "iPhone", "start": 39, "end": 45 }
+      ],
+      "ambiguousCount": 1,
+      "ambiguousMatches": [
+        { "termId": "cmterm_it", "glossaryTerm": "IT", "caseSensitivity": "auto", "text": "IT", "start": 60, "end": 62, "reason": "all_caps_context" }
+      ]
+    },
+    "target": {
+      "language": "de",
+      "count": 2,
+      "uniqueTerms": 2,
+      "matches": [
+        { "termId": "cmterm_it", "glossaryTerm": "IT", "caseSensitivity": "auto", "text": "IT", "start": 6, "end": 8 },
+        { "termId": "cmterm_apikey", "glossaryTerm": "API-Schlüssel", "caseSensitivity": "auto", "text": "API-Schlüssel", "start": 22, "end": 35 }
+      ],
+      "ambiguousCount": 0,
+      "ambiguousMatches": []
+    },
+    "terms": [
+      {
+        "termId": "cmterm_it",
+        "sourceTerm": "IT",
+        "targetTerm": "IT",
+        "sourceCount": 1,
+        "sourceAmbiguousCount": 1,
+        "targetCount": 1,
+        "targetAmbiguousCount": 0,
+        "targetCaseMismatches": []
+      },
+      {
+        "termId": "cmterm_apikey",
+        "sourceTerm": "API key",
+        "targetTerm": "API-Schlüssel",
+        "sourceCount": 1,
+        "sourceAmbiguousCount": 0,
+        "targetCount": 1,
+        "targetAmbiguousCount": 0,
+        "targetCaseMismatches": []
+      },
+      {
+        "termId": "cmterm_iphone",
+        "sourceTerm": "iPhone",
+        "targetTerm": "iPhone",
+        "sourceCount": 1,
+        "sourceAmbiguousCount": 0,
+        "targetCount": 0,
+        "targetAmbiguousCount": 0,
+        "targetCaseMismatches": [
+          { "text": "Iphone", "start": 45, "end": 51 }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Reading the example:
+
+- "IT" in "WE FIXED IT" is ambiguous: in text written in capitals, the abbreviation can't be told apart from the pronoun "it".
+- "API keys" is one match for `API key`, not also a match for `API`.
+- The translation wrote "Iphone": it isn't counted (`targetCount: 0`) and is reported in `targetCaseMismatches`, so the glossary wasn't followed for `iPhone`.
+
+### Response Fields
+
+`source` and `target` have the same shape. `target` and `terms` are `null` when no target is sent.
+
+| Field | Type | Description |
+|---|---|---|
+| `language` | string | Language code of the text |
+| `count` | integer | Number of confident matches (total occurrences) |
+| `uniqueTerms` | integer | Number of distinct glossary terms among the confident matches |
+| `matches` | array | Confident matches, in text order |
+| `ambiguousCount` | integer | Number of ambiguous matches |
+| `ambiguousMatches` | array | Matches that can't be decided from the text alone, each with a `reason` |
+
+Each match:
+
+| Field | Type | Description |
+|---|---|---|
+| `termId` | string | ID of the glossary term |
+| `glossaryTerm` | string | The entry as stored in the glossary |
+| `caseSensitivity` | string | The entry's [letter case setting](#letter-case-matching) applied to this match |
+| `text` | string | The text exactly as it appears in the input |
+| `start`, `end` | integer | Position in the input text, in Unicode code points (`end` is exclusive) |
+| `reason` | string | Only in `ambiguousMatches`, see below |
+
+<Aside type="caution">
+  `start` and `end` count Unicode code points. JavaScript strings count UTF-16 units, so text containing emoji or other characters outside the Basic Multilingual Plane is shifted. In JavaScript, slice `Array.from(text)` instead of the string itself.
+</Aside>
+
+Ambiguity reasons:
+
+| `reason` | Meaning | Example |
+|---|---|---|
+| `all_caps_context` | An entry with capital letters, found in text written in capitals | `IT` in "WE FIXED IT" |
+| `initial_capital_only` | An entry whose only capital is its first letter, found in lowercase. Only with the `auto` setting | `Apple` found as "apple" |
+
+Each item of `terms` compares one term found in the source with its translation:
+
+| Field | Type | Description |
+|---|---|---|
+| `termId` | string | ID of the glossary term |
+| `sourceTerm` | string | Source-language entry |
+| `targetTerm` | string or null | Target-language entry; `null` when the term has no entry in the target language |
+| `sourceCount`, `sourceAmbiguousCount` | integer | Confident and ambiguous occurrences in the source |
+| `targetCount`, `targetAmbiguousCount` | integer | Confident and ambiguous occurrences in the target |
+| `targetCaseMismatches` | array | Occurrences of the target entry written with the wrong letter case (`text`, `start`, `end`) |
+
+A term was followed when `targetCount` covers `sourceCount`. Compare the counts the way your content needs: a translation can legitimately use a term fewer times, for example when two sentences are merged.
+
+### Errors
+
+| Status | When |
+|---|---|
+| `400` | Invalid body; `targetLanguage` without `targetText` or the other way around; a language code that isn't supported; or a language that isn't one of the glossary's languages, for example `Target language 'ru' is not in glossary cmglossary123. Available languages: en, es, de` |
+| `401` | Missing or invalid API key |
+| `404` | The glossary doesn't exist or belongs to another organization |
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/glossaries/cmglossary123/terms/count" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "sourceLanguage": "en",
+           "sourceText": "Our IT team rotates API keys for every iPhone app.",
+           "targetLanguage": "de",
+           "targetText": "Unser IT-Team rotiert API-Schlüssel für jede Iphone-App."
+         }'
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+glossary_id = "cmglossary123"
+url = f"https://platform.algebras.ai/api/v1/translation/glossaries/{glossary_id}/terms/count"
+headers = {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+data = {
+    "sourceLanguage": "en",
+    "sourceText": "Our IT team rotates API keys for every iPhone app.",
+    "targetLanguage": "de",
+    "targetText": "Unser IT-Team rotiert API-Schlüssel für jede Iphone-App."
+}
+
+response = requests.post(url, headers=headers, json=data)
+
+if response.status_code == 200:
+    for term in response.json()["data"]["terms"]:
+        followed = term["targetCount"] >= term["sourceCount"]
+        print(f'{term["sourceTerm"]} -> {term["targetTerm"]}: {"ok" if followed else "missing"}',
+              [m["text"] for m in term["targetCaseMismatches"]])
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const glossaryId = "cmglossary123";
+const url = `https://platform.algebras.ai/api/v1/translation/glossaries/${glossaryId}/terms/count`;
+
+const response = await fetch(url, {
+  method: "POST",
+  headers: {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    sourceLanguage: "en",
+    sourceText: "Our IT team rotates API keys for every iPhone app.",
+    targetLanguage: "de",
+    targetText: "Unser IT-Team rotiert API-Schlüssel für jede Iphone-App.",
+  }),
+});
+
+if (response.ok) {
+  const { data } = await response.json();
+  for (const term of data.terms) {
+    const followed = term.targetCount >= term.sourceCount;
+    console.log(`${term.sourceTerm} -> ${term.targetTerm}: ${followed ? "ok" : "missing"}`);
+  }
+} else {
+  const error = await response.json();
+  console.error("Error:", response.status, error);
+}
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    glossaryID := "cmglossary123"
+    url := fmt.Sprintf("https://platform.algebras.ai/api/v1/translation/glossaries/%s/terms/count", glossaryID)
+
+    payload := map[string]string{
+        "sourceLanguage": "en",
+        "sourceText":     "Our IT team rotates API keys for every iPhone app.",
+        "targetLanguage": "de",
+        "targetText":     "Unser IT-Team rotiert API-Schlüssel für jede Iphone-App.",
+    }
+
+    jsonData, _ := json.Marshal(payload)
+
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Printf("%d\n%s\n", resp.StatusCode, string(body))
+}
+```
+</TabItem>
+</Tabs>
+
+## Letter Case Matching
+
+Capitalization can change what a word means: "IT" (information technology) and "it" (the pronoun), "mW" (milliwatt) and "MW" (megawatt). It can also be irrelevant: "Email" at the start of a sentence is still "email". The `caseSensitivity` setting tells the term counter which applies to a glossary entry.
+
+The setting belongs to each language entry of a term, so the English and German entries of the same term can differ. It's used only by the term counter and doesn't change how translations are generated.
+
+### Modes
+
+| `caseSensitivity` | Rule | Use for | Example |
+|---|---|---|---|
+| `auto` (default) | Uppercase letters must match; lowercase letters may be either case. If only the first letter is capitalized, a lowercase occurrence is reported as ambiguous for review | Most terms | `IT` ≠ "it" · `term` = "Term" = "TERM" · `Apple` → "apple": ambiguous |
+| `capitals` | Uppercase letters must match; lowercase letters may be either case. No ambiguity for an initial capital: it is always meaningful | Brand and product names | `Apple` ≠ "apple" · `iPhone` = "IPHONE" |
+| `exact` | Every letter must match exactly | Units, symbols, code identifiers | `mW` ≠ "MW" · `pH` ≠ "PH" |
+| `ignore` | Any capitalization counts; matches are never ambiguous | Ordinary words that can't be confused with other words | `email` = "Email" = "EMAIL" |
+
+In every mode, accents must match, except in text written entirely in capitals.
+
+### How Each Mode Treats the Same Text
+
+| Entry | Text | `auto` | `capitals` | `exact` | `ignore` |
+|---|---|---|---|---|---|
+| `IT` | "it works" | no match | no match | no match | match |
+| `IT` | "Contact the IT team" | match | match | match | match |
+| `IT` | "WE FIXED IT" | ambiguous | ambiguous | ambiguous | match |
+| `Apple` | "an apple" | ambiguous | no match | no match | match |
+| `term` | "Term", "TERM" | match | match | no match | match |
+| `iPhone` | "IPHONE" | match | match | no match | match |
+| `mW` | "5 MW" | match | match | no match | match |
+
+The `mW` row shows why `exact` exists: with any other mode, "MW" (megawatt) would be counted as `mW` (milliwatt).
+
+On the target side, an occurrence rejected only because of its letter case is listed in `targetCaseMismatches`. With `exact`, a translation that writes "Iphone" or "IPHONE" for `iPhone` shows up there.
+
+### Setting the Mode
+
+Send `caseSensitivity` with a definition when you [create](/api/glossaries/glossary-terms/#create-term), [bulk-create](/api/glossaries/glossary-terms/#create-multiple-terms-bulk) or [update](/api/glossaries/glossary-terms/#update-term) a term. Omitting it on create means `auto`; omitting it on update keeps the current value; sending `auto` resets an entry to the default. Every response that returns definitions includes the value.
+
+Create a unit term that must match exactly in every language:
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/glossaries/cmglossary123/terms" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "definitions": [
+             { "language": "en", "term": "mW", "definition": "Milliwatt", "caseSensitivity": "exact" },
+             { "language": "de", "term": "mW", "definition": "Milliwatt", "caseSensitivity": "exact" }
+           ]
+         }'
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+glossary_id = "cmglossary123"
+url = f"https://platform.algebras.ai/api/v1/translation/glossaries/{glossary_id}/terms"
+headers = {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+data = {
+    "definitions": [
+        {"language": "en", "term": "mW", "definition": "Milliwatt", "caseSensitivity": "exact"},
+        {"language": "de", "term": "mW", "definition": "Milliwatt", "caseSensitivity": "exact"}
+    ]
+}
+
+response = requests.post(url, headers=headers, json=data)
+print(response.status_code, response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const glossaryId = "cmglossary123";
+const url = `https://platform.algebras.ai/api/v1/translation/glossaries/${glossaryId}/terms`;
+
+const response = await fetch(url, {
+  method: "POST",
+  headers: {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    definitions: [
+      { language: "en", term: "mW", definition: "Milliwatt", caseSensitivity: "exact" },
+      { language: "de", term: "mW", definition: "Milliwatt", caseSensitivity: "exact" },
+    ],
+  }),
+});
+
+console.log(response.status, await response.json());
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    glossaryID := "cmglossary123"
+    url := fmt.Sprintf("https://platform.algebras.ai/api/v1/translation/glossaries/%s/terms", glossaryID)
+
+    payload := map[string]interface{}{
+        "definitions": []map[string]string{
+            {"language": "en", "term": "mW", "definition": "Milliwatt", "caseSensitivity": "exact"},
+            {"language": "de", "term": "mW", "definition": "Milliwatt", "caseSensitivity": "exact"},
+        },
+    }
+
+    jsonData, _ := json.Marshal(payload)
+
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Printf("%d\n%s\n", resp.StatusCode, string(body))
+}
+```
+</TabItem>
+</Tabs>
+
+Change only the mode of the English entry of an existing term. The term text and definition stay as they are:
+
+```bash
+curl -X PUT "https://platform.algebras.ai/api/v1/translation/glossaries/cmglossary123/terms/cmterm123" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{ "definitions": [{ "language": "en", "caseSensitivity": "capitals" }] }'
+```
+
+An unknown value returns `400` with `caseSensitivity must be one of: auto, capitals, exact, ignore`.
+
+The setting is also available in the app, in the **Letter case** column of a glossary (see [Glossaries](/app/glossaries/#letter-case-matching)), and through the MCP term tools (`create_glossary_term`, `bulk_create_glossary_terms`, `update_glossary_term`).

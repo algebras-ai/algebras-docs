@@ -24,8 +24,9 @@ Glossaries ensure consistent translation of specific terms, names, and phrases a
 3. Select the language pair you're adding terms for.
 4. Enter the source term and its translation.
 5. Optionally add a definition or context note.
-6. Click **Add Term**.
-7. Repeat for additional terms.
+6. Optionally choose a **Letter case** mode (see [Letter Case Matching](#letter-case-matching)). It applies to the language you're adding the term in; automatically translated entries start with **Auto**.
+7. Click **Add Term**.
+8. Repeat for additional terms.
 
 ## AI Extraction
 
@@ -53,6 +54,30 @@ Extract terms automatically from your existing content:
 - **Delete a term**: Remove individual terms as needed.
 - **Bulk import**: Import terms via CSV for large glossaries.
 - **Export**: Download your glossary as CSV for backup or migration.
+
+## Letter Case Matching
+
+Glossary QA (the [term counter](/api/glossaries/term-counter/)) checks whether a text or a translation uses your glossary terms. Capitalization matters for some terms and not for others: "IT" (information technology) isn't the pronoun "it", and "mW" (milliwatt) isn't "MW" (megawatt), but "Email" at the start of a sentence is still "email". The **Letter case** column tells glossary QA which is which.
+
+The setting belongs to each language of a term, so English and German entries of the same term can use different modes. It only affects glossary QA; it doesn't change how translations are generated.
+
+| Mode | How it matches | Use for | Example |
+|---|---|---|---|
+| **Auto** (default) | Uppercase letters must match; lowercase letters may be either case. If only the first letter is capitalized, a lowercase occurrence is flagged as ambiguous for review | Most terms | "IT" ≠ "it" · "term" = "Term" = "TERM" · "Apple" → "apple": ambiguous |
+| **Capitals must match** | Uppercase letters must match; lowercase letters may be either case | Brand and product names | "Apple" ≠ "apple" · "iPhone" = "IPHONE" |
+| **Exact** | Every letter must match exactly | Units, symbols, code | "mW" ≠ "MW" · "pH" ≠ "PH" |
+| **Ignore case** | Any capitalization counts, never ambiguous | Ordinary words that can't be confused with other words | "email" = "Email" = "EMAIL" |
+
+In every mode, accents must match, except in text written entirely in capitals.
+
+To change the mode of a term:
+
+1. Open your glossary and select the language tab.
+2. Click the edit (pencil) button on the term's row. To change another language's entry, expand the row first and edit that language's line.
+3. Choose a mode in the **Letter case** column.
+4. Click the check mark to save.
+
+Click the info icon next to the **Letter case** column header for a short description of each mode.
 
 ## Using Glossaries in Translation
 
