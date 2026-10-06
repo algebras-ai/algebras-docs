@@ -6,7 +6,9 @@ sidebar:
 ---
 import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
-Evaluate an existing source/translation pair independently of the translation endpoints — useful for QA pipelines or scoring translations produced outside Algebras.
+Evaluate translation quality independently of the translation endpoints — useful for QA pipelines or scoring translations produced outside Algebras. These endpoints assess how natural and accurate a translation reads in the target language across four complementary methods: fluency scoring (dimension-based), fluency batch (multi-item), MQM-style error evaluation, and GEMBA quality scoring.
+
+For validating that translations follow glossary terminology, see [Term Counter](/api/glossaries/term-counter/) — it works alongside these metrics to provide complete QA coverage.
 
 ## Evaluate Fluency
 
@@ -375,6 +377,194 @@ func main() {
         for _, e := range evaluations {
             item := e.(map[string]interface{})
             fmt.Println(item["index"], item["fluency"])
+        }
+    } else {
+        fmt.Printf("Error: %d\n", resp.StatusCode)
+        fmt.Println(string(body))
+    }
+}
+```
+</TabItem>
+</Tabs>
+
+## Evaluate Fluency (MQM-Style)
+
+Evaluates translation naturalness using Multidimensional Quality Metrics (MQM) style, scoring on a 0–100 scale where errors are penalized: critical errors subtract 25, major errors subtract 5, and minor errors subtract 1. Returns a detailed breakdown of all errors found across five linguistic dimensions.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/post_translation_fluency_mqm" target="_blank" rel="noopener noreferrer"><code>POST /translation/fluency-mqm</code></a>
+
+### Request Body
+
+Sent as JSON.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `sourceLang` | string | yes | Source language code |
+| `targetLang` | string | yes | Target language code |
+| `sourceText` | string | yes | The original text in the source language |
+| `translatedText` | string | yes | The translated text to evaluate |
+
+<Aside type="note">
+  Billed as a flat 10 words per call, same as fluency-score and GEMBA.
+</Aside>
+
+### Response
+
+**Success Response (200)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "score": 95,
+    "idiomatic": 100,
+    "collocational": 100,
+    "discourse": 100,
+    "pragmatic": 100,
+    "calque": 95,
+    "errors": [
+      {
+        "dimension": "calque",
+        "severity": "major",
+        "phrase": "macht Sinn",
+        "explanation": "Literal mirror of 'makes sense'; German prefers 'ergibt Sinn'."
+      }
+    ],
+    "main_issue": "The phrase 'macht Sinn' is a calque from English.",
+    "issue_type": "calque",
+    "severity": "major"
+  }
+}
+```
+
+`score` ranges from 0 (many errors) to 100 (no errors). Each dimension (`idiomatic`, `collocational`, `discourse`, `pragmatic`, `calque`) shows the score for that category alone: 100 minus penalties for errors in that dimension. `errors` is a list of all issues found, each with `dimension`, `severity` (critical, major, or minor), the problematic `phrase`, and an `explanation`. `issue_type` is one of `calque`, `collocation`, `idiom_literal`, `discourse_marker`, `register_mismatch`, `false_friend`, or `none`.
+
+<Aside type="note">
+  Unlike `POST /translation/fluency-score`, MQM evaluation returns all errors found rather than just the most critical one, and does not require a reference translation.
+</Aside>
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/fluency-mqm" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "sourceLang": "en",
+           "targetLang": "de",
+           "sourceText": "That makes sense.",
+           "translatedText": "Das macht Sinn."
+         }'
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+url = "https://platform.algebras.ai/api/v1/translation/fluency-mqm"
+headers = {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+data = {
+    "sourceLang": "en",
+    "targetLang": "de",
+    "sourceText": "That makes sense.",
+    "translatedText": "Das macht Sinn."
+}
+
+response = requests.post(url, headers=headers, json=data)
+
+if response.status_code == 200:
+    result = response.json()["data"]
+    print(f"Score: {result['score']}, main issue: {result['main_issue']}")
+    for error in result['errors']:
+        print(f"  {error['severity']} ({error['dimension']}): {error['phrase']}")
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const url = "https://platform.algebras.ai/api/v1/translation/fluency-mqm";
+
+const response = await fetch(url, {
+  method: "POST",
+  headers: {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    sourceLang: "en",
+    targetLang: "de",
+    sourceText: "That makes sense.",
+    translatedText: "Das macht Sinn.",
+  }),
+});
+
+if (response.ok) {
+  const result = await response.json();
+  console.log("Score:", result.data.score, "main issue:", result.data.main_issue);
+  result.data.errors.forEach((error) => {
+    console.log(`  ${error.severity} (${error.dimension}): ${error.phrase}`);
+  });
+} else {
+  const error = await response.json();
+  console.error("Error:", response.status, error);
+}
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    url := "https://platform.algebras.ai/api/v1/translation/fluency-mqm"
+
+    payload := map[string]interface{}{
+        "sourceLang":     "en",
+        "targetLang":     "de",
+        "sourceText":     "That makes sense.",
+        "translatedText": "Das macht Sinn.",
+    }
+
+    jsonData, _ := json.Marshal(payload)
+
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+
+    if resp.StatusCode == 200 {
+        var result map[string]interface{}
+        json.Unmarshal(body, &result)
+        data := result["data"].(map[string]interface{})
+        fmt.Println("Score:", data["score"], "main issue:", data["main_issue"])
+        if errors, ok := data["errors"].([]interface{}); ok {
+            for _, e := range errors {
+                error := e.(map[string]interface{})
+                fmt.Printf("  %s (%s): %s\n", error["severity"], error["dimension"], error["phrase"])
+            }
         }
     } else {
         fmt.Printf("Error: %d\n", resp.StatusCode)
