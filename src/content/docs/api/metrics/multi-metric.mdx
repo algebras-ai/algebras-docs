@@ -1,0 +1,305 @@
+---
+title: Multi-Metric Evaluation
+description: Evaluate translations with multiple standard MT quality metrics in one call
+sidebar:
+  order: 3
+---
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+Scores one translation with any combination of standard machine translation (MT) quality metrics. Run all five or select specific metrics—each returns a score on its own scale along with metric-specific details.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Translation/post_translation_metrics" target="_blank" rel="noopener noreferrer"><code>POST /translation/metrics</code></a>
+
+## Available Metrics
+
+| Metric | Method | Needs Reference | Scale | Use When |
+|--------|--------|-----------------|-------|----------|
+| `gemba_mqm` | GEMBA-MQM (LLM error annotation) | no | 0 to -25 | Detailed naturalness errors needed |
+| `gemba_esa` | GEMBA-ESA (LLM error spans + scoring) | no | 0-100 | Quick quality assessment without reference |
+| `chrf` | chrF++ (sacreBLEU) | yes | 0-100 | Character/word n-gram similarity |
+| `bleu` | BLEU (sacreBLEU, sentence-level) | yes | 0-100 | Legacy MT evaluation |
+| `comet` | COMET (Unbabel/WMT22 neural model) | yes | ~0-1 | Neural quality trained on human judgements |
+
+Scales are never normalized—compare scores only within the same metric and use `higher_is_better` for direction.
+
+## Request Body
+
+Sent as JSON.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `sourceLang` | string | yes | Source language code |
+| `targetLang` | string | yes | Target language code |
+| `sourceText` | string | yes | The original text in the source language |
+| `translatedText` | string | yes | The translated text to evaluate |
+| `referenceText` | string | optional | Human reference translation (required by chrF, BLEU, COMET) |
+| `metrics` | array | optional | Metrics to compute (default: all). Each value from the table above |
+
+<Aside type="note">
+  Each computed metric is charged as 10 words. If you omit `metrics` and send no `referenceText`, reference-based metrics are returned with `skipped: "reference_required"` and are not charged.
+</Aside>
+
+## Response
+
+**Success Response (200)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-01-12T22:31:48.856Z",
+  "data": {
+    "results": [
+      {
+        "metric": "gemba_mqm",
+        "score": -6,
+        "higher_is_better": true,
+        "detail": {
+          "errors": [
+            {
+              "severity": "major",
+              "category": "accuracy/omission",
+              "span": "the account holder's",
+              "explanation": null
+            }
+          ]
+        },
+        "error": null,
+        "skipped": null
+      },
+      {
+        "metric": "gemba_esa",
+        "score": 78.5,
+        "higher_is_better": true,
+        "detail": {
+          "errors": [
+            {
+              "severity": "major",
+              "category": "accuracy/omission",
+              "span": "the account holder's",
+              "explanation": "Information missing from translation"
+            }
+          ]
+        },
+        "error": null,
+        "skipped": null
+      },
+      {
+        "metric": "chrf",
+        "score": 72.3,
+        "higher_is_better": true,
+        "detail": {
+          "variant": "chrf++",
+          "char_order": 6,
+          "word_order": 2
+        },
+        "error": null,
+        "skipped": null
+      },
+      {
+        "metric": "bleu",
+        "score": 45.2,
+        "higher_is_better": true,
+        "detail": {
+          "tokenizer": "ja",
+          "precisions": [0.5, 0.4, 0.3, 0.2],
+          "brevity_penalty": 1.0
+        },
+        "error": null,
+        "skipped": null
+      },
+      {
+        "metric": "comet",
+        "score": 0.82,
+        "higher_is_better": true,
+        "detail": {
+          "checkpoint": "wmt22-comet-da"
+        },
+        "error": null,
+        "skipped": null
+      }
+    ]
+  }
+}
+```
+
+### Response Fields
+
+Each result object contains:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `metric` | string | The metric name |
+| `score` | number \| null | Score on the metric's own scale; null if skipped or failed |
+| `higher_is_better` | boolean | Whether higher scores indicate better translations |
+| `detail` | object \| null | Metric-specific details (see below) |
+| `error` | string \| null | Set when the metric computation failed; failed metrics are not charged |
+| `skipped` | string \| null | Set when the metric was not run (e.g., `"reference_required"`) |
+
+### Metric-Specific Details
+
+- **gemba_mqm, gemba_esa:** `errors` array with severity, category, span, and explanation
+- **bleu:** `tokenizer`, `precisions` (4-gram array), `brevity_penalty`
+- **chrf:** `variant`, `char_order`, `word_order`
+- **comet:** `checkpoint` (model version used)
+
+## Example Requests
+
+### All Metrics with Reference (No Charge for Missing Reference)
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/metrics" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "sourceLang": "en",
+           "targetLang": "de",
+           "sourceText": "I would not be able to discuss this with you.",
+           "translatedText": "Ich wäre nicht in der Lage, dies mit dir zu besprechen.",
+           "referenceText": "Ich könnte dies nicht mit Ihnen besprechen."
+         }'
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+url = "https://platform.algebras.ai/api/v1/translation/metrics"
+headers = {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json"
+}
+data = {
+    "sourceLang": "en",
+    "targetLang": "de",
+    "sourceText": "I would not be able to discuss this with you.",
+    "translatedText": "Ich wäre nicht in der Lage, dies mit dir zu besprechen.",
+    "referenceText": "Ich könnte dies nicht mit Ihnen besprechen."
+}
+
+response = requests.post(url, headers=headers, json=data)
+
+if response.status_code == 200:
+    results = response.json()["data"]["results"]
+    for result in results:
+        status = "OK" if result["score"] is not None else f"Skipped: {result['skipped']}"
+        print(f"{result['metric']}: {result['score']} ({status})")
+else:
+    print(f"Error: {response.status_code}")
+    print(response.json())
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const url = "https://platform.algebras.ai/api/v1/translation/metrics";
+
+const response = await fetch(url, {
+  method: "POST",
+  headers: {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    sourceLang: "en",
+    targetLang: "de",
+    sourceText: "I would not be able to discuss this with you.",
+    translatedText: "Ich wäre nicht in der Lage, dies mit dir zu besprechen.",
+    referenceText: "Ich könnte dies nicht mit Ihnen besprechen.",
+  }),
+});
+
+if (response.ok) {
+  const results = await response.json();
+  results.data.results.forEach((result) => {
+    const status = result.score !== null ? "OK" : `Skipped: ${result.skipped}`;
+    console.log(`${result.metric}: ${result.score} (${status})`);
+  });
+} else {
+  const error = await response.json();
+  console.error("Error:", response.status, error);
+}
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+func main() {
+    url := "https://platform.algebras.ai/api/v1/translation/metrics"
+
+    payload := map[string]interface{}{
+        "sourceLang":     "en",
+        "targetLang":     "de",
+        "sourceText":     "I would not be able to discuss this with you.",
+        "translatedText": "Ich wäre nicht in der Lage, dies mit dir zu besprechen.",
+        "referenceText":  "Ich könnte dies nicht mit Ihnen besprechen.",
+    }
+
+    jsonData, _ := json.Marshal(payload)
+
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+
+    if resp.StatusCode == 200 {
+        var response map[string]interface{}
+        json.Unmarshal(body, &response)
+        data := response["data"].(map[string]interface{})
+        results := data["results"].([]interface{})
+        for _, r := range results {
+            result := r.(map[string]interface{})
+            score := result["score"]
+            metric := result["metric"]
+            fmt.Printf("%v: %v\n", metric, score)
+        }
+    } else {
+        fmt.Printf("Error: %d\n", resp.StatusCode)
+        fmt.Println(string(body))
+    }
+}
+```
+</TabItem>
+</Tabs>
+
+### Specific Metrics Only (No Reference)
+
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/metrics" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "sourceLang": "en",
+           "targetLang": "de",
+           "sourceText": "The quick brown fox jumps over the lazy dog.",
+           "translatedText": "Der schnelle braune Fuchs springt über den faulen Hund.",
+           "metrics": ["gemba_mqm", "gemba_esa"]
+         }'
+```
+
+Response: Only `gemba_mqm` and `gemba_esa` are computed (charged as 20 words total).
+
+## Error Handling
+
+| Status | Scenario |
+|--------|----------|
+| `400` | Unknown metric name, or a reference-based metric requested without `referenceText` |
+| `401` | Missing or invalid API key |
+| `500` | Metric computation failed (returned with error description, not charged) |
