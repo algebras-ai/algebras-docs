@@ -10,6 +10,10 @@ The term counter is a quality-assurance tool for [glossaries](/api/glossaries/gl
 
 The counter doesn't translate anything and doesn't call a language model: results are deterministic and don't consume translation quota.
 
+<Aside>
+  **Complementary tool:** Use [Metrics](/api/metrics/) endpoints to evaluate translation **quality** (naturalness, fluency, accuracy). Use Term Counter to evaluate translation **consistency** with your glossary. Together they provide complete QA coverage.
+</Aside>
+
 ## Count Terms
 
 **Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Glossaries/post_translation_glossaries__id__terms_count" target="_blank" rel="noopener noreferrer"><code>POST /translation/glossaries/\{id\}/terms/count</code></a>
