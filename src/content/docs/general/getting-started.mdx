@@ -13,6 +13,8 @@ Before you begin, you'll need:
 
 1. **An Algebras account** - [Sign up here](https://platform.algebras.ai/)
 2. **An API key** - [Create one here](https://platform.algebras.ai/api-keys)
+3. **Python 3.12 or higher**
+4. **pip (Python package installer)**
 
 :::tip
 Keep your API key secure! Never commit it to version control or share it publicly.
@@ -120,6 +122,9 @@ Now that you have the basics working, explore these advanced features:
 - **[Languages API](/api/languages/)** - Supported languages
 
 ## Common Issues & Solutions
+
+### "error: externally-managed-environment"
+**Solution:** Create a virtual environment: `python3 -m venv venv` and `source venv/bin/activate` then re-run `pip install` from CLI step 1.
 
 ### "No Algebras configuration found"
 **Solution:** Run `algebras init` in your project directory.
