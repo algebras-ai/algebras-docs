@@ -15,6 +15,7 @@ Before you begin, you'll need:
 2. **An API key** - [Create one here](https://platform.algebras.ai/api-keys)
 3. **Python 3.12 or higher**
 4. **pip (Python package installer)**
+5. **Git**
 
 :::tip
 Keep your API key secure! Never commit it to version control or share it publicly.
@@ -34,6 +35,10 @@ Keep your API key secure! Never commit it to version control or share it publicl
 ## Path 1: CLI Quick Start (5 minutes)
 
 The Algebras CLI is perfect for translating localization files in your project. Here's how to get started:
+
+:::note
+On Debian 12+ and Ubuntu 23.04+, `pip install` outside a virtual environment fails. Run `sudo apt install python3-venv`, then `python3 -m venv venv` and `source venv/bin/activate`, and keep the environment activated whenever you run `algebras`.
+:::
 
 ### Step 1: Install the CLI
 
@@ -124,7 +129,7 @@ Now that you have the basics working, explore these advanced features:
 ## Common Issues & Solutions
 
 ### "error: externally-managed-environment"
-**Solution:** Create a virtual environment: `python3 -m venv venv` and `source venv/bin/activate` then re-run `pip install` from CLI step 1.
+**Solution:** Install the venv package, then create and activate a virtual environment: `sudo apt install python3-venv`, `python3 -m venv venv`, and `source venv/bin/activate`. Then re-run `pip install` from CLI step 1.
 
 ### "No Algebras configuration found"
 **Solution:** Run `algebras init` in your project directory.
