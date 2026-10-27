@@ -9,6 +9,12 @@ This guide covers common issues you might encounter when using the Algebras CLI 
 
 ## Installation Issues
 
+### "error: externally-managed-environment"
+
+**Cause:** Your system Python is managed by the OS ([PEP 668](https://peps.python.org/pep-0668/)), so pip won't install packages into it. This is the default on Debian/Ubuntu with Python 3.11+, Fedora, Arch and Homebrew Python.
+
+**Solution:** Install with [pipx](/cli/installation/#method-1-using-pipx-recommended) or a [virtual environment](/cli/installation/#method-2-using-a-virtual-environment). Don't use `--break-system-packages`: it can break OS tools that depend on the system Python.
+
 ### "command not found: algebras"
 
 **Cause:** The CLI wasn't added to your PATH after installation.
@@ -30,18 +36,7 @@ This guide covers common issues you might encounter when using the Algebras CLI 
 
 **Cause:** Insufficient permissions to install packages globally.
 
-**Solutions:**
-
-1. **Use --user flag:**
-   ```bash
-   pip install --user git+https://github.com/algebras-ai/algebras-cli.git
-   ```
-2. **Use virtual environment:**
-   ```bash
-   python -m venv algebras-env
-   source algebras-env/bin/activate  # On Windows: algebras-env\Scripts\activate
-   pip install git+https://github.com/algebras-ai/algebras-cli.git
-   ```
+**Solution:** Don't install with `sudo pip`. Install with [pipx](/cli/installation/#method-1-using-pipx-recommended) or a [virtual environment](/cli/installation/#method-2-using-a-virtual-environment). Neither needs admin rights for the CLI itself.
 
 ### Python Version Issues
 
