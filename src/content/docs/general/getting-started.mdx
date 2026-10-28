@@ -3,7 +3,7 @@ title: Getting Started
 description: Quick start guide for Algebras CLI and API
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
 
 Welcome to Algebras! This guide will help you get up and running quickly with either our CLI tool or API. Choose the path that works best for your workflow.
 
@@ -35,9 +35,57 @@ The Algebras CLI is perfect for translating localization files in your project. 
 
 ### Step 1: Install the CLI
 
+Install the CLI with [pipx](https://pipx.pypa.io/), which keeps it in its own isolated environment. You'll also need Git installed.
+
+First install pipx:
+
+<Tabs syncKey="os">
+<TabItem label="Debian/Ubuntu">
 ```bash
-pip install git+https://github.com/algebras-ai/algebras-cli.git
+sudo apt update
+sudo apt install pipx
 ```
+</TabItem>
+<TabItem label="Fedora">
+```bash
+sudo dnf install pipx
+```
+</TabItem>
+<TabItem label="Arch">
+```bash
+sudo pacman -S python-pipx
+```
+</TabItem>
+<TabItem label="macOS">
+```bash
+brew install pipx
+```
+</TabItem>
+<TabItem label="Windows">
+```powershell
+python -m pip install --user pipx
+```
+</TabItem>
+</Tabs>
+
+Then add pipx's app directory to your PATH and install the CLI:
+
+```bash
+pipx ensurepath
+pipx install git+https://github.com/algebras-ai/algebras-cli.git
+```
+
+On Windows, run `python -m pipx` in place of `pipx` for both commands, since `pipx` isn't on your PATH until you open a new terminal.
+
+Open a new terminal so the PATH change takes effect, then check the install:
+
+```bash
+algebras --version
+```
+
+:::caution
+Don't install with plain `pip install` on Debian/Ubuntu, Arch or with Homebrew Python. Those systems block it with `error: externally-managed-environment`. To use a virtual environment instead of pipx, see [Installation](/cli/installation/#method-2-using-a-virtual-environment).
+:::
 
 ### Step 2: Initialize Your Project
 
@@ -120,6 +168,9 @@ Now that you have the basics working, explore these advanced features:
 - **[Languages API](/api/languages/)** - Supported languages
 
 ## Common Issues & Solutions
+
+### "error: externally-managed-environment"
+**Solution:** Your system Python is managed by the OS ([PEP 668](https://peps.python.org/pep-0668/)), so pip won't install into it. Install with pipx as shown in [Step 1](#step-1-install-the-cli), or use a [virtual environment](/cli/installation/#method-2-using-a-virtual-environment).
 
 ### "No Algebras configuration found"
 **Solution:** Run `algebras init` in your project directory.
