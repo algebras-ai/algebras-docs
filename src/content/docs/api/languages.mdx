@@ -4,7 +4,7 @@ description: API endpoints for retrieving supported languages
 sidebar:
   order: 1
 ---
-import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
 ## Get Supported Languages
 
@@ -151,7 +151,7 @@ func main() {
 
 ## Detect Language
 
-Detect the language of the provided text.
+Detects the language of a text. It covers the languages of the [supported languages list](#get-supported-languages) and tells you how sure it is, so you can ask the user to confirm when the text is short or the language has a close neighbor.
 
 **Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Languages/post_translation_languages_detect" target="_blank" rel="noopener noreferrer"><code>POST /translation/languages/detect</code></a>
 
@@ -159,7 +159,7 @@ Detect the language of the provided text.
 
 ```json
 {
-  "text": "Hello, World! How are you today?"
+  "text": "Selamat pagi, apa kabar?"
 }
 ```
 
@@ -174,10 +174,41 @@ Parameters:
 ```json
 {
   "status": "ok",
-  "timestamp": "2025-01-12T22:31:48.856Z",
-  "data": {
-    "language": "en",
-    "confidence": 0.98
+  "timestamp": "2026-10-29T10:00:00.000Z",
+  "data": "ms",
+  "detection": {
+    "language": "ms",
+    "confidence": 0.71,
+    "reliable": false,
+    "alternatives": [
+      { "language": "id", "confidence": 0.19 }
+    ]
+  }
+}
+```
+
+| Field | Description |
+|---|---|
+| `data` | Detected language code |
+| `detection.language` | The same code as `data` |
+| `detection.confidence` | Probability that the detected language is right, from 0 to 1 |
+| `detection.reliable` | `true` when the confidence is at least 0.8. Short texts and close languages (Malay and Indonesian, for example) are often not reliable: check `alternatives` then, or let the user choose |
+| `detection.alternatives` | Up to 3 runners-up with a confidence of at least 0.1, most likely first. Often empty |
+
+<Aside>
+  `detection` was added in October 2026. `data` keeps its earlier form, a language code string, so existing integrations keep working.
+</Aside>
+
+**Error Response (400)**
+
+Returned when the text has no letters or its language is not one the platform supports.
+
+```json
+{
+  "status": "error",
+  "timestamp": "2026-10-29T10:00:00.000Z",
+  "error": {
+    "message": "Could not detect the language of the text"
   }
 }
 ```
@@ -191,7 +222,7 @@ curl -X POST "https://platform.algebras.ai/api/v1/translation/languages/detect" 
      -H "X-Api-Key: your_api_key_here" \
      -H "Content-Type: application/json" \
      -d '{
-           "text": "Hello, World! How are you today?"
+           "text": "Selamat pagi, apa kabar?"
          }'
 ```
 </TabItem>
@@ -205,16 +236,18 @@ headers = {
     "Content-Type": "application/json"
 }
 data = {
-    "text": "Hello, World! How are you today?"
+    "text": "Selamat pagi, apa kabar?"
 }
 
 response = requests.post(url, headers=headers, json=data)
 
 if response.status_code == 200:
     result = response.json()
-    detected = result["data"]
-    print(f"Detected language: {detected['language']}")
-    print(f"Confidence: {detected['confidence']}")
+    detection = result["detection"]
+    print(f"Detected language: {result['data']}")
+    print(f"Confidence: {detection['confidence']:.0%}")
+    if not detection["reliable"]:
+        print("Could also be:", [a["language"] for a in detection["alternatives"]])
 else:
     print(f"Error: {response.status_code}")
     print(response.json())
@@ -231,14 +264,17 @@ const response = await fetch(url, {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    text: "Hello, World! How are you today?",
+    text: "Selamat pagi, apa kabar?",
   }),
 });
 
 if (response.ok) {
   const result = await response.json();
-  console.log("Detected language:", result.data.language);
-  console.log("Confidence:", result.data.confidence);
+  console.log("Detected language:", result.data);
+  console.log("Confidence:", result.detection.confidence);
+  if (!result.detection.reliable) {
+    console.log("Could also be:", result.detection.alternatives.map((a) => a.language));
+  }
 } else {
   const error = await response.json();
   console.error("Error:", response.status, error);
@@ -261,7 +297,7 @@ func main() {
     url := "https://platform.algebras.ai/api/v1/translation/languages/detect"
     
     payload := map[string]string{
-        "text": "Hello, World! How are you today?",
+        "text": "Selamat pagi, apa kabar?",
     }
     
     jsonData, _ := json.Marshal(payload)
@@ -282,9 +318,10 @@ func main() {
     if resp.StatusCode == 200 {
         var result map[string]interface{}
         json.Unmarshal(body, &result)
-        data := result["data"].(map[string]interface{})
-        fmt.Printf("Detected language: %v\n", data["language"])
-        fmt.Printf("Confidence: %v\n", data["confidence"])
+        detection := result["detection"].(map[string]interface{})
+        fmt.Printf("Detected language: %v\n", result["data"])
+        fmt.Printf("Confidence: %v\n", detection["confidence"])
+        fmt.Printf("Reliable: %v\n", detection["reliable"])
     } else {
         fmt.Printf("Error: %d\n", resp.StatusCode)
         fmt.Println(string(body))
