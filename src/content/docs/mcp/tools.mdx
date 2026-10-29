@@ -1,0 +1,61 @@
+---
+title: Tools
+description: The tools the Algebras MCP server gives AI agents
+sidebar:
+  order: 2
+---
+import { Aside } from '@astrojs/starlight/components';
+
+Each tool matches an API endpoint, with the same validation, limits and billing. Your agent reads the tool descriptions and input schemas from the server, so you usually just describe what you want. The API pages linked below explain the parameters and results in detail.
+
+## Translation
+
+| Tool | What it does | API |
+|---|---|---|
+| `get_languages` | Lists the supported language codes and names | [Languages](/api/languages/) |
+| `translate_text` | Translates one text, optionally with a glossary, a prompt and a fluency score | [Translate](/api/translation/translate/) |
+| `translate_batch` | Translates up to 20 texts with the same languages and settings, and waits for the result | [Translate Batch](/api/translation/translate-batch/) |
+| `translate_batch_async` | Starts a batch translation of up to 20 texts and returns a job ID | [Translate Batch](/api/translation/translate-batch/) |
+| `get_translate_batch_async_status` | Gets the status and result of a job from `translate_batch_async` | [Translate Batch](/api/translation/translate-batch/) |
+
+## Quality
+
+| Tool | What it does | API |
+|---|---|---|
+| `check_fluency` | Scores how natural one translation reads (1–10), with the main issue and a suggested fix | [Fluency](/api/metrics/fluency/) |
+| `check_fluency_batch` | Scores up to 20 translations in one call | [Fluency](/api/metrics/fluency/) |
+| `evaluate_gemba` | Scores a translation from 0 to 100, optionally against a reference translation | [GEMBA](/api/metrics/gemba/) |
+
+## Glossaries
+
+| Tool | What it does | API |
+|---|---|---|
+| `list_glossaries` | Lists the organization's glossaries, paginated | [Glossaries](/api/glossaries/glossaries/) |
+| `create_glossary` | Creates an empty glossary with a name and languages | [Glossaries](/api/glossaries/glossaries/) |
+| `get_glossary` | Gets a glossary by ID | [Glossaries](/api/glossaries/glossaries/) |
+| `update_glossary` | Renames a glossary or changes its languages | [Glossaries](/api/glossaries/glossaries/) |
+| `delete_glossary` | Deletes a glossary and all its terms | [Glossaries](/api/glossaries/glossaries/) |
+| `list_glossary_terms` | Lists a glossary's terms, paginated | [Glossary Terms](/api/glossaries/glossary-terms/) |
+| `get_glossary_term` | Gets a term with all its definitions | [Glossary Terms](/api/glossaries/glossary-terms/) |
+| `create_glossary_term` | Adds a term with its translations and definitions | [Glossary Terms](/api/glossaries/glossary-terms/) |
+| `bulk_create_glossary_terms` | Adds several terms in one call | [Glossary Terms](/api/glossaries/glossary-terms/) |
+| `update_glossary_term` | Changes a term's translations, definitions or letter case matching | [Glossary Terms](/api/glossaries/glossary-terms/) |
+| `delete_glossary_term` | Deletes a term | [Glossary Terms](/api/glossaries/glossary-terms/) |
+| `count_glossary_terms` | Finds glossary terms in a text and, given a translation, checks that they were translated as in the glossary | [Term Counter](/api/glossaries/term-counter/) |
+
+## Terms Extraction
+
+| Tool | What it does | API |
+|---|---|---|
+| `get_glossary_extraction_options` | Gets the extraction limits, depth levels and instruction presets | [Get Extraction Options](/api/glossaries/terms-extraction/#get-extraction-options) |
+| `extract_glossary_terms` | Starts extracting term candidates from a text and returns a task ID | [Extract Terms](/api/glossaries/terms-extraction/#extract-terms) |
+| `save_glossary_terms` | Translates the chosen terms into the glossary languages and adds them, and returns a task ID | [Save Terms](/api/glossaries/terms-extraction/#save-terms) |
+| `get_glossary_task` | Gets the state, progress and result of an extraction or save task | [Get Task Status](/api/glossaries/terms-extraction/#get-task-status) |
+
+Extraction and saving run in the background. The agent starts a task, checks it with `get_glossary_task` until its `state` is `succeeded` or `failed`, and in between can show you the candidates to choose from. For example:
+
+> Extract the character, place and item names from `script.txt` into a new glossary for English, German and French. Show me the candidates before saving.
+
+<Aside title="Billing">
+  Extraction is free. Saving is billed by words, for the translations of the saved terms. Translation and fluency tools are billed like the API.
+</Aside>

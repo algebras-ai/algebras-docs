@@ -22,33 +22,34 @@ API keys allow you to programmatically access translation services via REST API.
 
 ### Authentication
 
-Include your API key in the `Authorization` header of all API requests:
+Send your API key in the `x-api-key` header of every API request:
 
 ```bash
-Authorization: Bearer <your-api-key>
+x-api-key: <your-api-key>
 ```
 
 ### Example Request
 
 ```bash
-curl -X POST https://api.algebras.ai/v1/translation \
-  -H "Authorization: Bearer your-api-key-here" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "source_language": "en",
-    "target_languages": ["es", "fr"],
-    "text": "Hello, world!"
-  }'
+curl -X POST "https://platform.algebras.ai/api/v1/translation/translate" \
+  -H "x-api-key: your-api-key-here" \
+  -F "sourceLanguage=en" \
+  -F "targetLanguage=es" \
+  -F "textContent=Hello, world!"
 ```
 
 ### API Endpoints
 
-Access the full API documentation at `https://docs.algebras.ai/` for:
+The API is at `https://platform.algebras.ai/api/v1`. See the [API reference](https://platform.algebras.ai/api/v1) and the Algebras API section of these docs for:
 - Available endpoints
 - Request/response formats
 - Rate limits
 - Error codes
 - Code examples
+
+### MCP
+
+The same key connects AI agents such as Claude, Cursor and VS Code to Algebras. See [Connect to the MCP Server](/mcp/connect/).
 
 ## Managing API Keys
 
@@ -108,7 +109,7 @@ This process ensures zero downtime during key rotation.
 
 1. Verify the key is copied correctly (no extra spaces or characters).
 2. Check that the key hasn't been revoked.
-3. Ensure you're using `Bearer` authentication in the Authorization header.
+3. Ensure you're sending the key in the `x-api-key` header, not `Authorization`.
 4. Verify the key belongs to the correct organization.
 
 ### Rate Limiting
