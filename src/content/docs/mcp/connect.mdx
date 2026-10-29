@@ -1,0 +1,171 @@
+---
+title: Connect to the MCP Server
+description: Connect Claude, Cursor, VS Code and other AI agents to Algebras through the Model Context Protocol
+sidebar:
+  order: 1
+---
+import { Tabs, TabItem, Aside, Steps } from '@astrojs/starlight/components';
+
+The Algebras MCP server gives AI agents the platform's translation, fluency scoring and glossary tools through the [Model Context Protocol](https://modelcontextprotocol.io). Once it is connected, you can ask your agent things like "translate these strings into German with our game glossary" or "extract the terms from this script and add them to a new glossary", and it calls Algebras for you. See [Tools](/mcp/tools/) for everything it can do.
+
+| | |
+|---|---|
+| **URL** | `https://platform.algebras.ai/api/mcp` |
+| **Transport** | Streamable HTTP |
+| **Authentication** | `x-api-key: <your API key>` header |
+
+The server is stateless: every request is authenticated with the key, and there is no session to keep alive. Tool calls are billed and limited like the same calls through the [API](/api/translation/translate/), against the organization the key belongs to.
+
+## Get an API Key
+
+Create a key in the app under **API Keys** (see [API Keys](/app/api-keys/)). The key belongs to the organization you create it in, so the agent sees that organization's glossaries and uses its plan.
+
+<Aside type="caution">
+  Treat the key like a password. If a config file below holds the key and lives inside a project, add it to `.gitignore`, or use the variants that read the key from an environment variable or ask for it.
+</Aside>
+
+## Connect Your Client
+
+Most clients load MCP servers at startup: restart the client (or reload its MCP servers) after changing the config.
+
+<Tabs>
+<TabItem label="Claude Code">
+```bash
+claude mcp add --transport http algebras https://platform.algebras.ai/api/mcp \
+  --header "x-api-key: YOUR_API_KEY"
+```
+
+Add `--scope user` to use it in every project, or `--scope project` to share it with your team through `.mcp.json` (then use `"x-api-key": "${ALGEBRAS_API_KEY}"` in that file so the key stays out of the repository). Check the connection with `/mcp`.
+
+For the full translation workflow (onboarding, glossary, translation and QA skills), install the Algebras agent plugin instead; its setup connects the server for you:
+
+```bash
+claude plugin marketplace add algebras-ai/algebras-agent
+claude plugin install algebras-agent@algebras-agent
+```
+
+Then run `/algebras-agent:setup` in Claude Code.
+</TabItem>
+<TabItem label="Claude Desktop">
+Claude Desktop connects to servers that need a custom header through the [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) bridge, which requires Node.js. Open **Settings → Developer → Edit Config** and add:
+
+```json
+{
+  "mcpServers": {
+    "algebras": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://platform.algebras.ai/api/mcp",
+        "--header",
+        "x-api-key:${ALGEBRAS_API_KEY}"
+      ],
+      "env": {
+        "ALGEBRAS_API_KEY": "YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Desktop. The Algebras tools appear under the tools icon in the chat input.
+</TabItem>
+<TabItem label="Cursor">
+Add to `.cursor/mcp.json` in your project, or `~/.cursor/mcp.json` for all projects:
+
+```json
+{
+  "mcpServers": {
+    "algebras": {
+      "url": "https://platform.algebras.ai/api/mcp",
+      "headers": {
+        "x-api-key": "YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+Check **Settings → MCP**: `algebras` should show a green dot and its tools.
+</TabItem>
+<TabItem label="VS Code">
+Add to `.vscode/mcp.json`. VS Code asks for the key when the server starts and stores it securely, so it never lands in the file:
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "algebras-api-key",
+      "description": "Algebras API key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "algebras": {
+      "type": "http",
+      "url": "https://platform.algebras.ai/api/mcp",
+      "headers": {
+        "x-api-key": "${input:algebras-api-key}"
+      }
+    }
+  }
+}
+```
+
+Use the tools from Copilot Chat in **Agent** mode.
+</TabItem>
+<TabItem label="Codex">
+Add to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.algebras]
+url = "https://platform.algebras.ai/api/mcp"
+http_headers = { "x-api-key" = "YOUR_API_KEY" }
+```
+</TabItem>
+<TabItem label="Other clients">
+Any client that supports Streamable HTTP servers with custom headers works. Most accept this shape (Windsurf: `~/.codeium/windsurf/mcp_config.json`, with `serverUrl` instead of `url`):
+
+```json
+{
+  "mcpServers": {
+    "algebras": {
+      "type": "http",
+      "url": "https://platform.algebras.ai/api/mcp",
+      "headers": {
+        "x-api-key": "YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+A client that only runs local (stdio) servers can connect through `mcp-remote`, as in the Claude Desktop tab.
+</TabItem>
+</Tabs>
+
+## Check the Connection
+
+Ask your agent to "list my Algebras glossaries" or "which languages does Algebras support". To check the key and the server without a client, list the tools with `curl`:
+
+```bash
+curl -s https://platform.algebras.ai/api/mcp \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}'
+```
+
+The response lists every tool with its input schema.
+
+## Troubleshooting
+
+| Problem | Cause and fix |
+|---|---|
+| `401 Unauthorized` | The `x-api-key` header is missing, or the key is wrong or deleted. Check the header name (not `Authorization`) and create a new key if needed. |
+| `402` | The organization has no active plan or quota left, or has unpaid invoices. See [Billing and Plans](/app/billing-and-plans/). |
+| The tools don't show up | Restart the client or reload its MCP servers. In Claude Code, `/mcp` shows the server status and error. |
+| `406 Not Acceptable` from `curl` | Send `Accept: application/json, text/event-stream`. MCP clients do this themselves. |
+| Wrong glossaries | The key belongs to another organization. Create a key in the organization you want. |
