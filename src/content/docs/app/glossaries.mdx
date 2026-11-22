@@ -14,8 +14,12 @@ Glossaries ensure consistent translation of specific terms, names, and phrases a
 3. Enter a descriptive name for your glossary.
 4. Select the languages this glossary will support (source and target languages).
 5. Choose how to populate your glossary:
-   - **Empty**: Start with a blank glossary.
-   - **Prefill with AI Extraction**: Automatically extract terms from sample text.
+   - **Empty Glossary**: Start with a blank glossary.
+   - **AI Extraction**: Paste text and extract terms from it. **More options** offers the same settings as [AI Extraction](#ai-extraction) in an existing glossary.
+
+With AI Extraction, the language of your text is detected as you type. If you haven't selected that language, it is added to the glossary languages, with a note under the text. You can remove it again. When the detection is unsure, for example between Malay and Indonesian, you'll see the likely languages as buttons instead: click the right one to add it.
+
+After you create the glossary, it opens and shows the extraction progress, then the terms to review.
 
 ## Adding Terms Manually
 
@@ -30,23 +34,31 @@ Glossaries ensure consistent translation of specific terms, names, and phrases a
 
 ## AI Extraction
 
-Extract terms automatically from your existing content:
+Extract terms automatically from your existing content. Extraction itself is free; you're billed only for translating the terms you add.
 
-1. Open your glossary (or create a new one with "Prefill with AI Extraction").
-2. Click **Add Terms**.
-3. Select the **Extract** tab.
-4. Paste sample text (up to 150,000 characters) that contains terms you want to extract.
-5. Click **Extract**.
-6. Review the AI-suggested terms:
-   - Accept terms that are correct.
-   - Edit terms that need adjustment.
-   - Skip terms that aren't relevant.
-7. Selected terms are automatically added to your glossary.
+1. Open your glossary and click **Extract terms** (or create a new glossary with **AI Extraction**).
+2. Paste text that uses your terminology (up to 200,000 characters). Long texts are split into parts and processed in parallel.
+3. Optionally open **More options**:
+   - **Presets**: ready-made instructions for game & lore, software & UI, legal, medical, and marketing & brand content. A preset fills in the instructions, which you can edit.
+   - **Instructions**: tell the AI what to extract, for example "Include every character, place and spell name." Your instructions take precedence over the default selection criteria.
+   - **Depth**: **Key terms** (only the core terms a translator must keep consistent), **Balanced** (every term worth keeping consistent, the default) or **Exhaustive** (every candidate, including minor names and one-off mentions).
+   - **Max terms**: keeps the terms that occur most often in the text.
+   - **Include definitions**: turn off to get a term list only. It is faster and leaves room for more terms.
+4. Click **Extract terms**. You can close the window while it runs and come back to review the terms.
+5. Review the candidates. They're ranked by how often they occur in the text:
+   - Edit a term or its definition in place.
+   - Delete terms you don't want, one by one or by selecting several.
+   - Add terms the extraction missed.
+
+   Terms that are already in the glossary are left out.
+6. Click **Add N terms**. The terms are translated into all languages of the glossary and added to it.
 
 **Best practices for extraction**:
 - Use representative content that includes your key terminology.
-- Longer text samples typically yield better results.
-- Review and refine extracted terms before accepting.
+- Pick a preset close to your content, then adjust its instructions.
+- If too few terms come back, try the **Exhaustive** depth or add instructions. If too many, use **Key terms** or set **Max terms**.
+
+To extract terms through the API, see [Terms Extraction](/api/glossaries/terms-extraction/).
 
 ## Editing and Managing Terms
 

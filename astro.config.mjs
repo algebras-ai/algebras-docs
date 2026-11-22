@@ -56,6 +56,10 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Algebras MCP',
+          items: [{ autogenerate: { directory: 'mcp' } }],
+        },
+        {
           label: 'Algebras CLI',
           items: [{ autogenerate: { directory: 'cli' } }],
         },

@@ -1,0 +1,692 @@
+---
+title: Terms Extraction
+description: Extract glossary term candidates from text with AI, review them, then translate and save them
+sidebar:
+  order: 2
+---
+import { Tabs, TabItem, Aside, Steps } from '@astrojs/starlight/components';
+
+Terms extraction finds the terms worth keeping consistent in a text (names, product features, defined terms, domain vocabulary) and adds them to a [glossary](/api/glossaries/glossaries/), translated into every language of that glossary.
+
+It works in two steps, so you can review the candidates before anything is added:
+
+<Steps>
+1. **Extract.** [`POST /translation/glossaries/{id}/extract`](#extract-terms) starts a background task that returns term candidates. The glossary does not change.
+2. **Save.** After your review, [`POST /translation/glossaries/{id}/terms/save`](#save-terms) translates the terms you kept into all glossary languages and adds them.
+</Steps>
+
+Both steps return a `taskId`. Follow a task with [`GET /translation/glossaries/tasks/{taskId}`](#get-task-status), or pass a `callbackUrl` to be notified when it finishes (see [Callbacks](#callbacks)). To skip the review, send `autoSave: true` with the extraction and it saves the new candidates itself.
+
+<Aside title="Billing">
+  Extraction is free. Saving is billed by words, for the translations of the saved terms. A term's own language and terms that are skipped or fail to translate are not billed. Extraction still needs an active plan with quota left, and is refused with `402` otherwise.
+</Aside>
+
+<Aside type="tip">
+  Add the language of your text to the glossary languages before saving. Terms are translated from whatever language they are in into every glossary language, and only languages the glossary has are stored. Not sure which language the text is in? Use [Detect Language](/api/languages/#detect-language).
+</Aside>
+
+## Get Extraction Options
+
+Returns the limits for extraction and saving, the depth levels, and ready-made instruction presets.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Glossaries/get_translation_glossaries_extract_config" target="_blank" rel="noopener noreferrer"><code>GET /translation/glossaries/extract/config</code></a>
+
+### Response
+
+**Success Response (200)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-10-29T10:00:00.000Z",
+  "data": {
+    "limits": {
+      "maxTextLength": 200000,
+      "maxCustomPromptLength": 5000,
+      "maxTerms": 500,
+      "maxSaveTerms": 500,
+      "maxTermLength": 200,
+      "maxDefinitionLength": 1000
+    },
+    "depths": ["key", "balanced", "exhaustive"],
+    "defaultDepth": "balanced",
+    "presets": [
+      {
+        "id": "game-lore",
+        "label": "Game & lore",
+        "description": "Characters, places, factions, items and abilities",
+        "instructions": "This is game or fiction content. Extract every proper name: characters, places, factions, organizations, titles and ranks. ..."
+      }
+    ]
+  }
+}
+```
+
+| Field | Description |
+|---|---|
+| `limits.maxTextLength` | Longest `text` accepted by extraction, in characters |
+| `limits.maxCustomPromptLength` | Longest `customPrompt`, in characters |
+| `limits.maxTerms` | Highest allowed `maxTerms` |
+| `limits.maxSaveTerms` | Most terms per save request |
+| `limits.maxTermLength`, `limits.maxDefinitionLength` | Longest term and definition accepted by save, in characters |
+| `depths`, `defaultDepth` | Accepted `depth` values and the one used when you send none |
+| `presets` | Instruction texts for common kinds of content: `game-lore`, `software-ui`, `legal`, `medical` and `marketing`. Send a preset's `instructions` as `customPrompt` as it is, or adapt it to your content |
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X GET "https://platform.algebras.ai/api/v1/translation/glossaries/extract/config" \
+     -H "X-Api-Key: your_api_key_here"
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+url = "https://platform.algebras.ai/api/v1/translation/glossaries/extract/config"
+headers = {"X-Api-Key": "your_api_key_here"}
+
+response = requests.get(url, headers=headers)
+config = response.json()["data"]
+print(config["limits"]["maxTextLength"])
+for preset in config["presets"]:
+    print(preset["id"], "-", preset["description"])
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const url = "https://platform.algebras.ai/api/v1/translation/glossaries/extract/config";
+
+const response = await fetch(url, {
+  headers: { "X-Api-Key": "your_api_key_here" },
+});
+const { data: config } = await response.json();
+console.log(config.limits.maxTextLength);
+config.presets.forEach((p) => console.log(p.id, "-", p.description));
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "net/http"
+)
+
+func main() {
+    url := "https://platform.algebras.ai/api/v1/translation/glossaries/extract/config"
+
+    req, _ := http.NewRequest("GET", url, nil)
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    var result struct {
+        Data struct {
+            Limits  map[string]int `json:"limits"`
+            Presets []struct {
+                ID           string `json:"id"`
+                Instructions string `json:"instructions"`
+            } `json:"presets"`
+        } `json:"data"`
+    }
+    json.NewDecoder(resp.Body).Decode(&result)
+    fmt.Println(result.Data.Limits["maxTextLength"])
+    for _, p := range result.Data.Presets {
+        fmt.Println(p.ID)
+    }
+}
+```
+</TabItem>
+</Tabs>
+
+## Extract Terms
+
+Starts extracting term candidates from a text. Long texts are split into parts that are processed in parallel. The glossary does not change unless you send `autoSave: true`.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Glossaries/post_translation_glossaries__id__extract" target="_blank" rel="noopener noreferrer"><code>POST /translation/glossaries/\{id\}/extract</code></a>
+
+### Path Parameters
+
+- `id`: The glossary ID
+
+### Request Body
+
+Sent as JSON.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `text` | string | yes | Text to extract terms from, up to `limits.maxTextLength` characters |
+| `customPrompt` | string | no | Your instructions for what to extract, for example "Include every character, place and spell name." They take precedence over the default selection criteria. A [preset](#get-extraction-options) is a good starting point |
+| `depth` | string | no | How many terms to aim for. `key`: only the core terms a translator must keep consistent. `balanced` (default): every term worth keeping consistent, skipping obvious words. `exhaustive`: every candidate, including minor names and one-off mentions |
+| `maxTerms` | integer | no | Upper bound on the number of new candidates, 1 to `limits.maxTerms`. The ones that occur most often in the text are kept |
+| `includeDefinitions` | boolean | no | Generate a short definition for each term (default `true`). Turn it off for a term list only: it is faster and leaves room for more terms |
+| `autoSave` | boolean | no | Translate and save the new candidates without review (default `false`). The task then has the type `extract_and_save` and is billed like a [save](#save-terms) |
+| `callbackUrl` | string | no | An `https` URL that receives an event when the task finishes. See [Callbacks](#callbacks) |
+
+### Response
+
+**Accepted (202)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-10-29T10:00:00.000Z",
+  "data": {
+    "taskId": "f3b9c2e1-7a4d-4c1e-9b0a-2d6e8f1a5c37"
+  }
+}
+```
+
+**Error Responses**
+
+| Status | When |
+|---|---|
+| `400` | Invalid body, for example a text longer than `limits.maxTextLength` or a `callbackUrl` that is not `https` |
+| `402` | The organization has no quota left or has unpaid invoices |
+| `404` | The glossary does not exist in your organization |
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/glossaries/cmglossary123/extract" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "text": "Aldric raised the Dragon Stone above the gates of Vel'\''Shara. The Ember Guard knelt.",
+           "customPrompt": "Include every character, place and artifact name.",
+           "depth": "balanced",
+           "maxTerms": 50
+         }'
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+glossary_id = "cmglossary123"
+url = f"https://platform.algebras.ai/api/v1/translation/glossaries/{glossary_id}/extract"
+headers = {"X-Api-Key": "your_api_key_here"}
+body = {
+    "text": open("lore.txt", encoding="utf-8").read(),
+    "customPrompt": "Include every character, place and artifact name.",
+    "depth": "balanced",
+    "maxTerms": 50,
+}
+
+response = requests.post(url, headers=headers, json=body)
+response.raise_for_status()
+task_id = response.json()["data"]["taskId"]
+print("Extraction started:", task_id)
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+import { readFile } from "node:fs/promises";
+
+const glossaryId = "cmglossary123";
+const url = `https://platform.algebras.ai/api/v1/translation/glossaries/${glossaryId}/extract`;
+
+const response = await fetch(url, {
+  method: "POST",
+  headers: {
+    "X-Api-Key": "your_api_key_here",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    text: await readFile("lore.txt", "utf8"),
+    customPrompt: "Include every character, place and artifact name.",
+    depth: "balanced",
+    maxTerms: 50,
+  }),
+});
+
+const { data } = await response.json();
+console.log("Extraction started:", data.taskId);
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "net/http"
+    "os"
+)
+
+func main() {
+    glossaryID := "cmglossary123"
+    url := fmt.Sprintf("https://platform.algebras.ai/api/v1/translation/glossaries/%s/extract", glossaryID)
+
+    text, _ := os.ReadFile("lore.txt")
+    payload, _ := json.Marshal(map[string]interface{}{
+        "text":         string(text),
+        "customPrompt": "Include every character, place and artifact name.",
+        "depth":        "balanced",
+        "maxTerms":     50,
+    })
+
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+    req.Header.Set("Content-Type", "application/json")
+
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    var result struct {
+        Data struct {
+            TaskID string `json:"taskId"`
+        } `json:"data"`
+    }
+    json.NewDecoder(resp.Body).Decode(&result)
+    fmt.Println("Extraction started:", result.Data.TaskID)
+}
+```
+</TabItem>
+</Tabs>
+
+## Get Task Status
+
+Returns the state, progress and result of an extraction or save task. Poll every few seconds until `state` is `succeeded` or `failed`. Tasks are kept for 7 days.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Glossaries/get_translation_glossaries_tasks__taskId_" target="_blank" rel="noopener noreferrer"><code>GET /translation/glossaries/tasks/\{taskId\}</code></a>
+
+### Path Parameters
+
+- `taskId`: The task ID returned when the task was started
+
+### Response
+
+**Success Response (200)**, a finished extraction:
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-10-29T10:01:12.000Z",
+  "data": {
+    "taskId": "f3b9c2e1-7a4d-4c1e-9b0a-2d6e8f1a5c37",
+    "type": "extract",
+    "state": "succeeded",
+    "glossaryId": "cmglossary123",
+    "progress": { "phase": "extracting", "done": 2, "total": 2 },
+    "result": {
+      "terms": [
+        { "term": "Dragon Stone", "definition": "A rare magical artifact that powers the city gates.", "occurrences": 7, "exists": false },
+        { "term": "Ember Guard", "definition": "The order of knights that protects Vel'Shara.", "occurrences": 3, "exists": false },
+        { "term": "Aldric", "definition": "The king of Vel'Shara.", "occurrences": 12, "exists": true }
+      ],
+      "chunks": 2,
+      "failedChunks": [],
+      "truncated": false
+    },
+    "error": null,
+    "createdAt": "2026-10-29T10:00:00.000Z",
+    "updatedAt": "2026-10-29T10:01:10.000Z"
+  }
+}
+```
+
+| Field | Description |
+|---|---|
+| `type` | `extract`, `save`, or `extract_and_save` for an extraction with `autoSave` |
+| `state` | `pending`, `running`, `succeeded` or `failed` |
+| `progress` | `phase` is `extracting` (`done`/`total` count text parts) or `saving` (they count terms). `null` before the task starts |
+| `error` | Why the task failed, when `state` is `failed` |
+| `result` | Set once the task has finished. The fields below depend on the task type |
+
+**Extraction result** (`extract` and `extract_and_save`)
+
+| Field | Description |
+|---|---|
+| `terms` | Candidates, each with `term`, `definition`, `occurrences` (how often it occurs in the text) and `exists`. New candidates come first, ranked by occurrences, then the terms the glossary already has (`exists: true`) |
+| `chunks` | Number of parts the text was split into |
+| `failedChunks` | Zero-based indexes of parts that could not be processed. The candidates from the other parts are still returned; run the extraction again to cover these parts |
+| `truncated` | `true` when `maxTerms` cut off some candidates |
+
+**Save result** (`save` and `extract_and_save`)
+
+| Field | Description |
+|---|---|
+| `added` | Number of terms translated and saved |
+| `skipped` | Terms not saved, each with `term` and `reason` (`exists` when the glossary already has it) |
+| `failed` | Terms that could not be translated, each with `term` and `error`. They were not saved or billed |
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X GET "https://platform.algebras.ai/api/v1/translation/glossaries/tasks/f3b9c2e1-7a4d-4c1e-9b0a-2d6e8f1a5c37" \
+     -H "X-Api-Key: your_api_key_here"
+```
+</TabItem>
+<TabItem label="python">
+```python
+import time
+import requests
+
+headers = {"X-Api-Key": "your_api_key_here"}
+
+def wait_for_task(task_id):
+    url = f"https://platform.algebras.ai/api/v1/translation/glossaries/tasks/{task_id}"
+    while True:
+        task = requests.get(url, headers=headers).json()["data"]
+        if task["state"] in ("succeeded", "failed"):
+            return task
+        time.sleep(3)
+
+task = wait_for_task("f3b9c2e1-7a4d-4c1e-9b0a-2d6e8f1a5c37")
+if task["state"] == "failed":
+    raise RuntimeError(task["error"])
+for term in task["result"]["terms"]:
+    print(term["term"], term["occurrences"], "(exists)" if term["exists"] else "")
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const headers = { "X-Api-Key": "your_api_key_here" };
+
+async function waitForTask(taskId) {
+  const url = `https://platform.algebras.ai/api/v1/translation/glossaries/tasks/${taskId}`;
+  while (true) {
+    const { data: task } = await (await fetch(url, { headers })).json();
+    if (task.state === "succeeded" || task.state === "failed") return task;
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+}
+
+const task = await waitForTask("f3b9c2e1-7a4d-4c1e-9b0a-2d6e8f1a5c37");
+if (task.state === "failed") throw new Error(task.error);
+task.result.terms.forEach((t) => console.log(t.term, t.occurrences, t.exists ? "(exists)" : ""));
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+    "net/http"
+    "time"
+)
+
+type Task struct {
+    State  string `json:"state"`
+    Error  string `json:"error"`
+    Result struct {
+        Terms []struct {
+            Term        string `json:"term"`
+            Definition  string `json:"definition"`
+            Occurrences int    `json:"occurrences"`
+            Exists      bool   `json:"exists"`
+        } `json:"terms"`
+    } `json:"result"`
+}
+
+func waitForTask(taskID string) Task {
+    url := "https://platform.algebras.ai/api/v1/translation/glossaries/tasks/" + taskID
+    for {
+        req, _ := http.NewRequest("GET", url, nil)
+        req.Header.Set("X-Api-Key", "your_api_key_here")
+        resp, err := http.DefaultClient.Do(req)
+        if err != nil {
+            panic(err)
+        }
+        var result struct {
+            Data Task `json:"data"`
+        }
+        json.NewDecoder(resp.Body).Decode(&result)
+        resp.Body.Close()
+        if result.Data.State == "succeeded" || result.Data.State == "failed" {
+            return result.Data
+        }
+        time.Sleep(3 * time.Second)
+    }
+}
+
+func main() {
+    task := waitForTask("f3b9c2e1-7a4d-4c1e-9b0a-2d6e8f1a5c37")
+    if task.State == "failed" {
+        panic(task.Error)
+    }
+    for _, t := range task.Result.Terms {
+        fmt.Println(t.Term, t.Occurrences, t.Exists)
+    }
+}
+```
+</TabItem>
+</Tabs>
+
+## Save Terms
+
+Translates terms into every language of the glossary and adds them. Send the final list after your review: leave out the candidates you rejected, include terms you added yourself, and send edited terms and definitions as they are. The review happens on your side, so you can also save terms that did not come from an extraction.
+
+Terms the glossary already has are skipped, so resending the same request is safe. If you already have translations for your terms, use [Create Multiple Terms (Bulk)](/api/glossaries/glossary-terms/#create-multiple-terms-bulk) instead.
+
+**Endpoint:** <a href="https://platform.algebras.ai/api/v1#/Glossaries/post_translation_glossaries__id__terms_save" target="_blank" rel="noopener noreferrer"><code>POST /translation/glossaries/\{id\}/terms/save</code></a>
+
+### Path Parameters
+
+- `id`: The glossary ID
+
+### Request Body
+
+Sent as JSON.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `terms` | array of objects | yes | Terms to save, up to `limits.maxSaveTerms` |
+| `terms[].term` | string | yes | The term, up to `limits.maxTermLength` characters |
+| `terms[].definition` | string | no | A short definition, up to `limits.maxDefinitionLength` characters. It is translated along with the term |
+| `extractionTaskId` | string | no | The extraction task the terms came from, if any |
+| `callbackUrl` | string | no | An `https` URL that receives an event when the task finishes. See [Callbacks](#callbacks) |
+
+### Response
+
+**Accepted (202)**
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-10-29T10:03:00.000Z",
+  "data": {
+    "taskId": "9d1e4b7a-2c3f-4e8d-a6b5-0f7c1d2e3a4b"
+  }
+}
+```
+
+Follow the task with [Get Task Status](#get-task-status). Its `result` has `added`, `skipped` and `failed`.
+
+**Error Responses**
+
+| Status | When |
+|---|---|
+| `400` | Invalid body, for example too many terms |
+| `402` | The organization has no quota left or has unpaid invoices |
+| `404` | The glossary does not exist in your organization |
+| `409` | The glossary is being updated, for example by another save task. Wait for it to finish and retry |
+
+### Example Request
+
+<Tabs syncKey="lang">
+<TabItem label="bash">
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/glossaries/cmglossary123/terms/save" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "terms": [
+             { "term": "Dragon Stone", "definition": "A rare magical artifact that powers the city gates." },
+             { "term": "Ember Guard" }
+           ],
+           "extractionTaskId": "f3b9c2e1-7a4d-4c1e-9b0a-2d6e8f1a5c37"
+         }'
+```
+</TabItem>
+<TabItem label="python">
+```python
+import requests
+
+glossary_id = "cmglossary123"
+url = f"https://platform.algebras.ai/api/v1/translation/glossaries/{glossary_id}/terms/save"
+headers = {"X-Api-Key": "your_api_key_here"}
+
+# `task` is the finished extraction from the previous example.
+# Keep the new candidates you want, e.g. those that occur at least twice.
+reviewed = [
+    {"term": t["term"], "definition": t["definition"]}
+    for t in task["result"]["terms"]
+    if not t["exists"] and t["occurrences"] >= 2
+]
+
+response = requests.post(url, headers=headers, json={
+    "terms": reviewed,
+    "extractionTaskId": task["taskId"],
+})
+response.raise_for_status()
+save_task = wait_for_task(response.json()["data"]["taskId"])
+print("Added", save_task["result"]["added"], "terms")
+```
+</TabItem>
+<TabItem label="nodejs">
+```javascript
+const glossaryId = "cmglossary123";
+const url = `https://platform.algebras.ai/api/v1/translation/glossaries/${glossaryId}/terms/save`;
+
+// `task` is the finished extraction from the previous example.
+// Keep the new candidates you want, e.g. those that occur at least twice.
+const reviewed = task.result.terms
+  .filter((t) => !t.exists && t.occurrences >= 2)
+  .map(({ term, definition }) => ({ term, definition }));
+
+const response = await fetch(url, {
+  method: "POST",
+  headers: { ...headers, "Content-Type": "application/json" },
+  body: JSON.stringify({ terms: reviewed, extractionTaskId: task.taskId }),
+});
+const { data } = await response.json();
+const saveTask = await waitForTask(data.taskId);
+console.log("Added", saveTask.result.added, "terms");
+```
+</TabItem>
+<TabItem label="go">
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "net/http"
+)
+
+func main() {
+    glossaryID := "cmglossary123"
+    url := fmt.Sprintf("https://platform.algebras.ai/api/v1/translation/glossaries/%s/terms/save", glossaryID)
+
+    payload, _ := json.Marshal(map[string]interface{}{
+        "terms": []map[string]string{
+            {"term": "Dragon Stone", "definition": "A rare magical artifact that powers the city gates."},
+            {"term": "Ember Guard"},
+        },
+        "extractionTaskId": "f3b9c2e1-7a4d-4c1e-9b0a-2d6e8f1a5c37",
+    })
+
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+    req.Header.Set("X-Api-Key", "your_api_key_here")
+    req.Header.Set("Content-Type", "application/json")
+
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    var result struct {
+        Data struct {
+            TaskID string `json:"taskId"`
+        } `json:"data"`
+    }
+    json.NewDecoder(resp.Body).Decode(&result)
+    fmt.Println("Saving started:", result.Data.TaskID)
+}
+```
+</TabItem>
+</Tabs>
+
+## Callbacks
+
+Instead of polling, pass a `callbackUrl` when you start a task. When the task finishes, the platform sends a `POST` request with a JSON event to that URL:
+
+```json
+{
+  "event": "glossary.task.completed",
+  "eventId": "6c2f0a9e-1b3d-4f5a-8e7c-9d0b1a2c3e4f",
+  "taskId": "f3b9c2e1-7a4d-4c1e-9b0a-2d6e8f1a5c37",
+  "type": "extract",
+  "state": "succeeded",
+  "glossaryId": "cmglossary123",
+  "completedAt": "2026-10-29T10:01:10.000Z"
+}
+```
+
+The event carries no result: fetch it with [Get Task Status](#get-task-status). `state` is `succeeded` or `failed`.
+
+- The URL must use `https`, must not contain credentials, and its host must resolve to a public address. Otherwise the request that starts the task fails with `400`.
+- Answer with any `2xx` status to acknowledge the event. Otherwise delivery is retried up to 4 times: after 1 minute, 5 minutes, 30 minutes and 2 hours.
+- A retry has the same `eventId`, so use it to drop duplicates.
+
+A minimal receiver in Node.js:
+
+```javascript
+import { createServer } from "node:http";
+
+const seen = new Set();
+
+createServer(async (req, res) => {
+  let body = "";
+  for await (const chunk of req) body += chunk;
+  res.writeHead(200).end(); // acknowledge first
+
+  const event = JSON.parse(body);
+  if (seen.has(event.eventId)) return;
+  seen.add(event.eventId);
+  console.log(`Task ${event.taskId} (${event.type}) ${event.state}`);
+  // Fetch the result with GET /translation/glossaries/tasks/{taskId}
+}).listen(3000);
+```
+
+## Without Review
+
+To extract and save in one call, send `autoSave: true`. Only new candidates are saved, and the task's `result` has both the extraction fields and `added`, `skipped` and `failed`:
+
+```bash
+curl -X POST "https://platform.algebras.ai/api/v1/translation/glossaries/cmglossary123/extract" \
+     -H "X-Api-Key: your_api_key_here" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "text": "Aldric raised the Dragon Stone above the gates of Vel'\''Shara.",
+           "depth": "key",
+           "autoSave": true,
+           "callbackUrl": "https://example.com/hooks/algebras"
+         }'
+```
+
+Use `depth: "key"` or a `maxTerms` cap here: without a review, every candidate is translated and billed.
